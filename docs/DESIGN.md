@@ -637,7 +637,7 @@ function hasFlag(argv: string[], flag: string): boolean {
 
 ---
 
-### Task 5: Implement Process Spawning
+### Task 5: Implement Process Spawning [DONE]
 
 **Goal:** `spawnTool(binaryPath, argv)` function that spawns the underlying binary with stdio inheritance and signal forwarding.
 
