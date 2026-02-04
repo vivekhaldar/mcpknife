@@ -1,0 +1,27 @@
+{
+  "name": "mcpx",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "mcpx": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "node esbuild.config.js",
+    "test": "vitest run",
+    "dev": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "mcpboot": "^0.1.0",
+    "mcpblox": "^0.1.1",
+    "mcp-gen-ui": "^0.1.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.0.0",
+    "tsx": "^4.0.0"
+  },
+  "files": [
+    "dist/"
+  ]
+}
