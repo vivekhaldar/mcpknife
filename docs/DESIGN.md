@@ -689,7 +689,7 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 ---
 
-### Task 7: Build and Package
+### Task 7: Build and Package [DONE]
 
 **Goal:** `npm run build` produces a working binary. `npm pack` produces a publishable tarball.
 
