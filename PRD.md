@@ -14,7 +14,7 @@ The MCP ecosystem has three complementary tools that form a natural pipeline:
 2. **mcpblox** — Transform, reshape, rename, hide, or combine tools on an existing MCP server
 3. **mcp-gen-ui** — Auto-generate interactive UIs for any MCP server's tools
 
-Today these are three separate npm packages (`mcpboot`, `mcpblox`, `mcp-gen-ui`) with three separate binaries. Users must discover, install, and remember three tools. The pipe protocol between them works but requires knowing all three binary names and their respective flags.
+Today these are three separate npm packages (`mcpboot`, `mcpblox`, `mcp-gen-ui`) with three separate binaries. Users must discover, install, and remember three tools. The pipe protocol between them works but requires knowing all three binary names and their respective flags. Common settings like LLM provider and API key must be repeated on every invocation.
 
 ## Solution
 
@@ -49,11 +49,62 @@ mcpx mod --upstream "npx some-server" --prompt "rename tools" \
   | mcpx ui --standard openai
 ```
 
+With a config file (`~/.mcpxrc`), the pipe chain above requires zero repeated flags — provider, model, and API key are loaded automatically.
+
 ## Non-Goals
 
 - **No new functionality.** mcpx delegates entirely to the three underlying packages. If a feature doesn't exist in `mcpboot`, `mcpblox`, or `mcp-gen-ui`, it doesn't belong in mcpx.
 - **No shared library extraction.** The three underlying packages share code (llm.ts, cache.ts, pipe.ts, sandbox.ts). Deduplication is a separate effort. mcpx treats them as opaque npm dependencies.
 - **No replacing the standalone tools.** `mcpboot`, `mcpblox`, and `mcp-gen-ui` continue to work as independent binaries. mcpx is an alternative entry point, not a replacement.
+- **No global option hoisting.** Common flags like `--provider` are not hoisted to the top-level `mcpx` command. In pipe chains, each stage is a separate OS process — top-level flags can't propagate across the pipe. The config file solves this problem instead.
+
+## Config File
+
+mcpx reads a config file to provide defaults for common settings, eliminating flag repetition across pipe stages.
+
+### Resolution Order
+
+Settings are resolved with the following precedence (highest first):
+
+1. **CLI flags** — Always win: `--provider openai` overrides everything
+2. **Environment variables** — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.
+3. **Project config** — `.mcpxrc` in the current directory (or nearest parent)
+4. **User config** — `~/.mcpxrc`
+
+### File Format
+
+JSON:
+
+```json
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-20250514",
+  "apiKey": "sk-ant-..."
+}
+```
+
+All fields are optional. Only specified fields provide defaults; unspecified fields fall through to the underlying tool's own defaults.
+
+### Supported Fields
+
+| Field | Type | Maps to CLI flag | Description |
+|-------|------|------------------|-------------|
+| `provider` | string | `--provider` | LLM provider: `anthropic` \| `openai` |
+| `model` | string | `--model` | LLM model ID |
+| `apiKey` | string | `--api-key` | LLM API key |
+| `verbose` | boolean | `--verbose` | Verbose logging |
+
+The config file only covers settings that are common across all three subcommands. Subcommand-specific options (e.g., `--standard` for `ui`, `--upstream` for `mod`) are not included — they must be passed as CLI flags.
+
+### How It Works
+
+When mcpx spawns a subcommand, it:
+
+1. Loads config from `~/.mcpxrc` and `./.mcpxrc` (project overrides user)
+2. Merges config values with CLI flags (CLI wins)
+3. Injects resolved values into the argument list passed to the underlying binary
+
+This means the underlying tools don't need to know about `.mcpxrc` — mcpx translates config values into CLI flags before spawning.
 
 ## Subcommands
 
@@ -190,10 +241,12 @@ mcpx ui --help
 mcpx (this package)
 ├── bin/mcpx.js          ← CLI entry point
 ├── src/
-│   ├── cli.ts           ← Top-level argument parser (Commander.js)
-│   ├── boot.ts          ← Delegates to mcpboot
-│   ├── mod.ts           ← Delegates to mcpblox
-│   └── ui.ts            ← Delegates to mcp-gen-ui
+│   ├── cli.ts           ← Subcommand routing and config file loading
+│   ├── config.ts        ← Config file resolution (~/.mcpxrc, ./.mcpxrc)
+│   ├── spawn.ts         ← Child process spawning with stdio forwarding
+│   ├── boot.ts          ← Builds argv for mcpboot, spawns it
+│   ├── mod.ts           ← Builds argv for mcpblox, spawns it
+│   └── ui.ts            ← Builds argv for mcp-gen-ui, spawns it
 ├── package.json
 │   └── dependencies:
 │       ├── mcpboot
@@ -204,17 +257,42 @@ mcpx (this package)
 
 ### Delegation Strategy
 
-Each subcommand module (`boot.ts`, `mod.ts`, `ui.ts`) imports the programmatic entry point from its respective package and invokes it with the parsed arguments. This is a **library-level delegation**, not a subprocess spawn. The underlying packages must export a programmatic API (function that accepts config and runs the server).
+mcpx delegates to the underlying tools by **spawning their CLI binaries** as child processes. Each subcommand module (`boot.ts`, `mod.ts`, `ui.ts`) resolves the path to the underlying package's binary (via `require.resolve` or the `node_modules/.bin` path), builds an argv array from the merged config + CLI flags, and spawns the process.
 
-If a package does not yet expose a clean programmatic API, the fallback is to spawn the package's binary as a child process, forwarding all arguments and stdio streams. This is less elegant but ensures mcpx works immediately without requiring changes to the underlying packages.
+This approach was chosen deliberately over library-level delegation because:
+
+1. **The underlying tools are CLI-first.** All three auto-execute on import with no guarded entry point. They parse `process.argv` and manage their own lifecycle. Importing them as libraries would require changes to each package.
+2. **Pipe protocol works naturally.** The tools communicate via stdin/stdout URLs. Spawning preserves this — mcpx just forwards stdio streams to the child process.
+3. **Signal handling is clean.** Each tool manages its own SIGINT/SIGTERM lifecycle. mcpx propagates signals to the child process.
+4. **Zero coupling.** mcpx doesn't track internal API changes in the underlying packages. If mcpblox refactors its internals, mcpx doesn't care — only the CLI contract matters.
+5. **Startup overhead is negligible.** These are long-running servers. A few hundred ms to spawn a Node process is irrelevant.
+
+### Spawning Details
+
+For each subcommand, mcpx:
+
+1. Resolves the underlying binary path (e.g., `node_modules/.bin/mcpboot` or `node_modules/mcpboot/dist/index.js`)
+2. Loads and merges config file defaults with CLI flags
+3. Builds the full argv array for the underlying tool
+4. Spawns via `child_process.spawn(process.execPath, [binaryPath, ...argv], { stdio: 'inherit' })`
+5. Forwards SIGINT and SIGTERM to the child process
+6. Exits with the child's exit code
+
+Using `stdio: 'inherit'` ensures stdin/stdout/stderr pass through transparently, preserving pipe behavior.
 
 ### Pipe Protocol
 
-The pipe protocol is already implemented in each underlying tool. mcpx simply needs to ensure:
+The pipe protocol is already implemented in each underlying tool. Since mcpx uses `stdio: 'inherit'`, pipes work transparently:
 
-1. Stdio streams are forwarded correctly to the underlying tool
-2. When piped, port defaults to `0` (handled by each underlying tool)
-3. Signal forwarding (SIGINT, SIGTERM) propagates to child processes (if using subprocess delegation)
+```bash
+mcpx boot --prompt "..." | mcpx mod --prompt "..." | mcpx ui
+```
+
+- `mcpx boot` spawns `mcpboot` with inherited stdio → mcpboot detects stdout is a pipe → uses port 0 → writes URL to stdout
+- `mcpx mod` spawns `mcpblox` with inherited stdio → mcpblox reads URL from stdin → detects stdout is a pipe → writes URL to stdout
+- `mcpx ui` spawns `mcp-gen-ui` with inherited stdio → mcp-gen-ui reads URL from stdin → serves on port 8000
+
+mcpx adds no logic to the pipe protocol. It is fully transparent.
 
 ## Package Details
 
@@ -224,9 +302,9 @@ The pipe protocol is already implemented in each underlying tool. mcpx simply ne
 - **Language:** TypeScript
 - **Build:** esbuild (single ESM bundle, consistent with underlying tools)
 - **Dependencies:**
-  - `mcpboot` — MCP server generation
-  - `mcpblox` — MCP tool transformation
-  - `mcp-gen-ui` — MCP UI generation
+  - `mcpboot` — MCP server generation (binary only)
+  - `mcpblox` — MCP tool transformation (binary only)
+  - `mcp-gen-ui` — MCP UI generation (binary only)
   - `commander` — CLI argument parsing
 - **Install:**
   ```bash
@@ -239,11 +317,14 @@ The pipe protocol is already implemented in each underlying tool. mcpx simply ne
 
 Since mcpx is a thin delegation layer, testing focuses on:
 
-1. **CLI parsing** — Correct subcommand routing and option parsing
-2. **Argument forwarding** — Options are passed through accurately to underlying tools
-3. **Pipe integration** — End-to-end pipe chains work (`mcpx boot | mcpx mod | mcpx ui`)
-4. **Error handling** — Missing subcommand, invalid options, and underlying tool errors surface clearly
-5. **Help text** — `mcpx --help`, `mcpx boot --help`, etc. produce correct output
+1. **Config file loading** — Correct resolution order (CLI > env > project > user), merging behavior, missing files handled gracefully
+2. **CLI parsing** — Correct subcommand routing and option parsing
+3. **Argument forwarding** — Config + CLI flags are correctly translated into argv for each underlying binary
+4. **Binary resolution** — Underlying tool binaries are found in node_modules
+5. **Pipe integration** — End-to-end pipe chains work (`mcpx boot | mcpx mod | mcpx ui`)
+6. **Signal forwarding** — SIGINT/SIGTERM propagate to child processes
+7. **Error handling** — Missing subcommand, invalid options, missing binary, and child process errors surface clearly
+8. **Help text** — `mcpx --help`, `mcpx boot --help`, etc. produce correct output
 
 Unit tests use vitest (consistent with underlying tools). Integration tests run actual pipe chains against mock or real MCP servers.
 
@@ -255,13 +336,5 @@ Unit tests use vitest (consistent with underlying tools). Integration tests run 
 4. Pipe chains work: `mcpx boot ... | mcpx mod ... | mcpx ui`
 5. `mcpx --help` and `mcpx <subcommand> --help` produce clear, useful output
 6. Single `npm install -g mcpx` gets you all three tools
-
-## Open Questions
-
-1. **Programmatic API availability:** Do `mcpboot`, `mcpblox`, and `mcp-gen-ui` currently export programmatic entry points, or only CLI binaries? This determines whether mcpx uses library-level delegation or subprocess spawning.
-
-2. **Version pinning:** Should mcpx pin exact versions of the three dependencies, or use semver ranges? Exact pinning ensures reproducibility; ranges pick up fixes automatically.
-
-3. **Global options:** Should common options (`--provider`, `--model`, `--api-key`, `--verbose`) be hoistable to the top level? e.g., `mcpx --provider openai boot --prompt "..."`. This is a convenience but adds CLI complexity.
-
-4. **Config file:** Should mcpx support a `.mcpxrc` or similar config file for default provider/model/api-key settings, reducing flag repetition in pipe chains?
+7. Config file at `~/.mcpxrc` eliminates flag repetition across pipe stages
+8. CLI flags override config file values
