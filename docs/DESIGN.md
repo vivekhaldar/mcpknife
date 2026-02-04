@@ -534,7 +534,7 @@ Each task is self-contained and testable. Tasks are ordered so that each builds 
 
 ---
 
-### Task 2: Implement Config File Loading
+### Task 2: Implement Config File Loading [DONE]
 
 **Goal:** `loadConfig()` function that reads and merges `~/.mcpxrc` and `./.mcpxrc`.
 
