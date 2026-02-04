@@ -706,7 +706,7 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 ---
 
-### Task 8: Integration Tests
+### Task 8: Integration Tests [DONE]
 
 **Goal:** End-to-end tests that verify the full flow.
 
