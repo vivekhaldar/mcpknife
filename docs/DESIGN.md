@@ -595,7 +595,7 @@ export function resolveBinary(subcommand: string): string;
 
 ---
 
-### Task 4: Implement Argument Injection
+### Task 4: Implement Argument Injection [DONE]
 
 **Goal:** `buildArgv(config, rawArgv)` function that injects config defaults into the raw argv.
 
