@@ -666,7 +666,7 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 ---
 
-### Task 6: Implement CLI Entry Point
+### Task 6: Implement CLI Entry Point [DONE]
 
 **Goal:** Wire everything together. Parse subcommand, load config, resolve binary, build argv, spawn.
 

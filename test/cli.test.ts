@@ -9,25 +9,91 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = path.resolve(__dirname, "..", "src", "cli.ts");
 
-function run(args: string[]): { stdout: string; exitCode: number } {
+function run(
+  args: string[],
+  options?: { cwd?: string }
+): { stdout: string; stderr: string; exitCode: number } {
   try {
     const stdout = execFileSync("npx", ["tsx", CLI_PATH, ...args], {
       encoding: "utf-8",
-      cwd: path.resolve(__dirname, ".."),
+      cwd: options?.cwd ?? path.resolve(__dirname, ".."),
       timeout: 10000,
+      stderr: "pipe",
     });
-    return { stdout: stdout.trim(), exitCode: 0 };
+    return { stdout: stdout.trim(), stderr: "", exitCode: 0 };
   } catch (err: any) {
     return {
-      stdout: (err.stdout ?? "").trim() + (err.stderr ?? "").trim(),
+      stdout: (err.stdout ?? "").trim(),
+      stderr: (err.stderr ?? "").trim(),
       exitCode: err.status ?? 1,
     };
   }
 }
 
-describe("cli stub", () => {
-  it("prints version string", () => {
-    const result = run([]);
-    expect(result.stdout).toMatch(/^mcpx v\d+\.\d+\.\d+$/);
+describe("cli", () => {
+  describe("help", () => {
+    it("prints help when no arguments provided", () => {
+      const result = run([]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("boot");
+      expect(result.stdout).toContain("mod");
+      expect(result.stdout).toContain("ui");
+    });
+
+    it("prints help with --help flag", () => {
+      const result = run(["--help"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("Commands:");
+    });
+
+    it("prints help with -h flag", () => {
+      const result = run(["-h"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("mcpx");
+    });
+  });
+
+  describe("version", () => {
+    it("prints version with --version flag", () => {
+      const result = run(["--version"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/^mcpx v\d+\.\d+\.\d+$/);
+    });
+
+    it("prints version with -V flag", () => {
+      const result = run(["-V"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/^mcpx v\d+\.\d+\.\d+$/);
+    });
+  });
+
+  describe("unknown subcommand", () => {
+    it("prints error and exits 1 for unknown subcommand", () => {
+      const result = run(["bogus"]);
+      expect(result.exitCode).toBe(1);
+      const output = result.stderr || result.stdout;
+      expect(output).toContain("unknown subcommand");
+      expect(output).toContain("bogus");
+    });
+  });
+
+  describe("subcommand dispatch", () => {
+    it("dispatches boot to mcpboot", () => {
+      const result = run(["boot", "--help"]);
+      // mcpboot's help text should appear
+      expect(result.exitCode).toBe(0);
+    });
+
+    it("dispatches mod to mcpblox", () => {
+      const result = run(["mod", "--help"]);
+      expect(result.exitCode).toBe(0);
+    });
+
+    it("dispatches ui to mcp-gen-ui", () => {
+      const result = run(["ui", "--help"]);
+      expect(result.exitCode).toBe(0);
+    });
   });
 });
