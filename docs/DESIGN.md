@@ -569,7 +569,7 @@ export function loadConfig(): McpxConfig;
 
 ---
 
-### Task 3: Implement Binary Resolution
+### Task 3: Implement Binary Resolution [DONE]
 
 **Goal:** `resolveBinary(subcommand)` function that returns the absolute path to the underlying tool's binary.
 
