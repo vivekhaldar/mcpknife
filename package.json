@@ -25,7 +25,7 @@
     "type": "git",
     "url": "https://github.com/vivekhaldar/mcpknife.git"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Vivek Haldar",
   "dependencies": {
     "mcpboot": "^0.1.0",

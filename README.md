@@ -132,4 +132,4 @@ npm run dev            # tsx (no build needed)
 
 ## License
 
-MIT
+Apache-2.0
