@@ -1,15 +1,32 @@
 {
-  "name": "mcpx",
+  "name": "mcpknife",
   "version": "0.1.0",
+  "description": "Swiss Army knife for MCP servers — generate, transform, and add UIs with Unix pipes",
   "type": "module",
   "bin": {
-    "mcpx": "dist/cli.js"
+    "mcpknife": "dist/cli.js"
   },
   "scripts": {
     "build": "node esbuild.config.js",
     "test": "vitest run",
     "dev": "tsx src/cli.ts"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "ai",
+    "llm",
+    "api",
+    "code-generation",
+    "tool-composition"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vivekhaldar/mcpknife.git"
+  },
+  "license": "MIT",
+  "author": "Vivek Haldar",
   "dependencies": {
     "mcpboot": "^0.1.0",
     "mcpblox": "^0.1.1",
