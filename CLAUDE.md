@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-mcpx is a CLI multiplexer for three MCP tools. It owns no business logic—it handles config loading, binary resolution, argument injection, and process spawning to delegate to:
+mcpknife is a CLI multiplexer for three MCP tools. It owns no business logic—it handles config loading, binary resolution, argument injection, and process spawning to delegate to:
 
-- `mcpx boot` → mcpboot (generate MCP server from prompt + API docs)
-- `mcpx mod` → mcpblox (transform/reshape tools on existing MCP server)
-- `mcpx ui` → mcp-gen-ui (auto-generate UIs for MCP servers)
+- `mcpknife boot` → mcpboot (generate MCP server from prompt + API docs)
+- `mcpknife mod` → mcpblox (transform/reshape tools on existing MCP server)
+- `mcpknife ui` → mcp-gen-ui (auto-generate UIs for MCP servers)
 
-These can be piped: `mcpx boot ... | mcpx mod ... | mcpx ui`
+These can be piped: `mcpknife boot ... | mcpknife mod ... | mcpknife ui`
 
 ## Build & Test Commands
 
@@ -32,12 +32,12 @@ cli.ts → config.ts → resolve.ts → args.ts → spawn.ts → child process
 ```
 
 - **cli.ts**: Entry point. Manual argv parsing (no CLI framework). Dispatches subcommand.
-- **config.ts**: Loads `~/.mcpxrc` and `./.mcpxrc` (JSON). Project overrides user (shallow merge). Fields: `provider`, `model`, `apiKey`, `verbose`.
+- **config.ts**: Loads `~/.mcpkniferc` and `./.mcpkniferc` (JSON). Project overrides user (shallow merge). Fields: `provider`, `model`, `apiKey`, `verbose`.
 - **resolve.ts**: Finds underlying tool binaries via `require.resolve()` + package.json bin field. `BINARY_MAP` maps subcommand names to npm package names.
 - **args.ts**: Injects config values as CLI flags only when absent from user argv. CLI flags always win.
 - **spawn.ts**: `child_process.spawn` with `stdio: 'inherit'`, signal forwarding (SIGINT/SIGTERM), exit code propagation.
 
-Key design choice: mcpx never parses subcommand-level flags. Everything after the subcommand name is passed through verbatim to the child tool.
+Key design choice: mcpknife never parses subcommand-level flags. Everything after the subcommand name is passed through verbatim to the child tool.
 
 ## Code Conventions
 
@@ -48,3 +48,16 @@ Key design choice: mcpx never parses subcommand-level flags. Everything after th
 ## Testing
 
 Unit tests cover each module independently. Integration tests in `test/integration.test.ts` use fixture scripts in `test/fixtures/` to test the full pipeline (config injection, flag override, signal forwarding, etc.) without requiring the actual mcpboot/mcpblox/mcp-gen-ui packages.
+
+## Defaults & Credentials
+
+- **Default model**: `claude-haiku-4-5` (haiku). Set via `~/.mcpkniferc` `"model"` field.
+- **API key**: Retrieved from `pass dev/ANTHROPIC_API_KEY`. Set via `~/.mcpkniferc` `"apiKey"` field.
+
+## MCP Inspectors & Testing Tools
+
+Three tools for inspecting and testing MCP servers produced by mcpknife:
+
+- **mcporter** (https://github.com/steipete/mcporter) — CLI tool to invoke MCP servers directly. Use it to list tools (`mcporter list-tools`) and make tool calls for quick verification.
+- **chatgpt-app-sim** (`~/repos/gh/chatgpt-app-sim`) — Simulator for MCP apps with graphical UIs. Use this to test `mcpknife ui` output that includes MCP Apps views.
+- **Anthropic MCP Inspector** — Web-based inspector for examining intermediate MCP servers (tool listings, raw tool calls). Useful for debugging the pipeline between `boot`, `mod`, and `ui` stages.
