@@ -3,7 +3,7 @@
 The Swiss Army knife for MCP servers. One command to generate, transform, and add UIs to MCP servers — with Unix pipes.
 
 ```bash
-mcpknife boot --prompt "Hacker News API" https://github.com/HackerNews/API \
+mcpknife boot --prompt "Hacker News API https://github.com/HackerNews/API" \
   | mcpknife mod --prompt "combine new + best into get_trending" \
   | mcpknife ui
 ```
@@ -35,7 +35,7 @@ One install. Three tools. No extra setup.
 ### Generate an MCP server from API docs
 
 ```bash
-mcpknife boot --prompt "Yahoo Finance API" https://finance.yahoo.com/api
+mcpknife boot --prompt "Yahoo Finance API https://finance.yahoo.com/api"
 ```
 
 Point it at API documentation and describe what you want. mcpknife boots an MCP server with tools derived from the API.
@@ -62,7 +62,7 @@ The real power is composition. Each stage is a separate process connected by pip
 
 ```bash
 # Generate → Transform → UI in one pipeline
-mcpknife boot --prompt "GitHub API" https://docs.github.com/en/rest \
+mcpknife boot --prompt "GitHub API https://docs.github.com/en/rest" \
   | mcpknife mod --prompt "combine issues + pulls into get_activity" \
   | mcpknife ui
 
