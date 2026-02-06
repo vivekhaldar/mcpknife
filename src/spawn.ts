@@ -22,10 +22,10 @@ export function spawnTool(binaryPath: string, argv: string[]): void {
 
   child.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "ENOENT") {
-      console.error(`mcpx: binary not found: ${binaryPath}`);
-      console.error(`Try reinstalling: npm install -g mcpx`);
+      console.error(`mcpknife: binary not found: ${binaryPath}`);
+      console.error(`Try reinstalling: npm install -g mcpknife`);
     } else {
-      console.error(`mcpx: failed to start: ${err.message}`);
+      console.error(`mcpknife: failed to start: ${err.message}`);
     }
     process.exit(1);
   });

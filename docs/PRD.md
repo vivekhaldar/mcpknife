@@ -1,10 +1,10 @@
-# mcpx — Product Requirements Document
+# mcpknife — Product Requirements Document
 
 ## Overview
 
-**mcpx** is a unified CLI for the MCP power-tool suite. It brings three standalone tools — `mcpboot`, `mcpblox`, and `mcp-gen-ui` — under a single command with subcommands `boot`, `mod`, and `ui`.
+**mcpknife** is a unified CLI for the MCP power-tool suite. It brings three standalone tools — `mcpboot`, `mcpblox`, and `mcp-gen-ui` — under a single command with subcommands `boot`, `mod`, and `ui`.
 
-mcpx does not implement new functionality. It exists purely for CLI ergonomics: one install, one command, discoverable subcommands, and seamless pipe composition across the entire MCP lifecycle.
+mcpknife does not implement new functionality. It exists purely for CLI ergonomics: one install, one command, discoverable subcommands, and seamless pipe composition across the entire MCP lifecycle.
 
 ## Problem
 
@@ -18,49 +18,49 @@ Today these are three separate npm packages (`mcpboot`, `mcpblox`, `mcp-gen-ui`)
 
 ## Solution
 
-A single CLI binary `mcpx` with three subcommands:
+A single CLI binary `mcpknife` with three subcommands:
 
 ```
-mcpx boot   →  mcpboot
-mcpx mod    →  mcpblox
-mcpx ui     →  mcp-gen-ui
+mcpknife boot   →  mcpboot
+mcpknife mod    →  mcpblox
+mcpknife ui     →  mcp-gen-ui
 ```
 
 ### The Pipeline Story
 
 ```bash
 # Full pipeline: generate → transform → add UI
-mcpx boot --prompt "Yahoo Finance API" https://finance.yahoo.com/api \
-  | mcpx mod --prompt "combine daily + weekly into get_period_returns" \
-  | mcpx ui
+mcpknife boot --prompt "Yahoo Finance API" https://finance.yahoo.com/api \
+  | mcpknife mod --prompt "combine daily + weekly into get_period_returns" \
+  | mcpknife ui
 
 # Just boot a server
-mcpx boot --prompt "Hacker News API" https://github.com/HackerNews/API
+mcpknife boot --prompt "Hacker News API" https://github.com/HackerNews/API
 
 # Transform an existing server
-mcpx mod --upstream "npx some-mcp-server" --prompt "hide write tools, expose read-only"
+mcpknife mod --upstream "npx some-mcp-server" --prompt "hide write tools, expose read-only"
 
 # Add UI to any running server
-mcpx ui --upstream-url http://localhost:3000/mcp
+mcpknife ui --upstream-url http://localhost:3000/mcp
 
 # Chain multiple transforms
-mcpx mod --upstream "npx some-server" --prompt "rename tools" \
-  | mcpx mod --prompt "add synthetic aggregation tool" \
-  | mcpx ui --standard openai
+mcpknife mod --upstream "npx some-server" --prompt "rename tools" \
+  | mcpknife mod --prompt "add synthetic aggregation tool" \
+  | mcpknife ui --standard openai
 ```
 
-With a config file (`~/.mcpxrc`), the pipe chain above requires zero repeated flags — provider, model, and API key are loaded automatically.
+With a config file (`~/.mcpkniferc`), the pipe chain above requires zero repeated flags — provider, model, and API key are loaded automatically.
 
 ## Non-Goals
 
-- **No new functionality.** mcpx delegates entirely to the three underlying packages. If a feature doesn't exist in `mcpboot`, `mcpblox`, or `mcp-gen-ui`, it doesn't belong in mcpx.
-- **No shared library extraction.** The three underlying packages share code (llm.ts, cache.ts, pipe.ts, sandbox.ts). Deduplication is a separate effort. mcpx treats them as opaque npm dependencies.
-- **No replacing the standalone tools.** `mcpboot`, `mcpblox`, and `mcp-gen-ui` continue to work as independent binaries. mcpx is an alternative entry point, not a replacement.
-- **No global option hoisting.** Common flags like `--provider` are not hoisted to the top-level `mcpx` command. In pipe chains, each stage is a separate OS process — top-level flags can't propagate across the pipe. The config file solves this problem instead.
+- **No new functionality.** mcpknife delegates entirely to the three underlying packages. If a feature doesn't exist in `mcpboot`, `mcpblox`, or `mcp-gen-ui`, it doesn't belong in mcpknife.
+- **No shared library extraction.** The three underlying packages share code (llm.ts, cache.ts, pipe.ts, sandbox.ts). Deduplication is a separate effort. mcpknife treats them as opaque npm dependencies.
+- **No replacing the standalone tools.** `mcpboot`, `mcpblox`, and `mcp-gen-ui` continue to work as independent binaries. mcpknife is an alternative entry point, not a replacement.
+- **No global option hoisting.** Common flags like `--provider` are not hoisted to the top-level `mcpknife` command. In pipe chains, each stage is a separate OS process — top-level flags can't propagate across the pipe. The config file solves this problem instead.
 
 ## Config File
 
-mcpx reads a config file to provide defaults for common settings, eliminating flag repetition across pipe stages.
+mcpknife reads a config file to provide defaults for common settings, eliminating flag repetition across pipe stages.
 
 ### Resolution Order
 
@@ -68,8 +68,8 @@ Settings are resolved with the following precedence (highest first):
 
 1. **CLI flags** — Always win: `--provider openai` overrides everything
 2. **Environment variables** — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.
-3. **Project config** — `.mcpxrc` in the current directory (or nearest parent)
-4. **User config** — `~/.mcpxrc`
+3. **Project config** — `.mcpkniferc` in the current directory (or nearest parent)
+4. **User config** — `~/.mcpkniferc`
 
 ### File Format
 
@@ -98,17 +98,17 @@ The config file only covers settings that are common across all three subcommand
 
 ### How It Works
 
-When mcpx spawns a subcommand, it:
+When mcpknife spawns a subcommand, it:
 
-1. Loads config from `~/.mcpxrc` and `./.mcpxrc` (project overrides user)
+1. Loads config from `~/.mcpkniferc` and `./.mcpkniferc` (project overrides user)
 2. Merges config values with CLI flags (CLI wins)
 3. Injects resolved values into the argument list passed to the underlying binary
 
-This means the underlying tools don't need to know about `.mcpxrc` — mcpx translates config values into CLI flags before spawning.
+This means the underlying tools don't need to know about `.mcpkniferc` — mcpknife translates config values into CLI flags before spawning.
 
 ## Subcommands
 
-### `mcpx boot`
+### `mcpknife boot`
 
 Generates and serves an MCP server from a natural language prompt.
 
@@ -116,8 +116,8 @@ Delegates to: `mcpboot` (npm: `mcpboot@0.1.0`)
 
 **Usage:**
 ```
-mcpx boot --prompt <text> [URLs...] [options]
-mcpx boot --prompt-file <path> [URLs...] [options]
+mcpknife boot --prompt <text> [URLs...] [options]
+mcpknife boot --prompt-file <path> [URLs...] [options]
 ```
 
 **Options:**
@@ -139,7 +139,7 @@ mcpx boot --prompt-file <path> [URLs...] [options]
 
 ---
 
-### `mcpx mod`
+### `mcpknife mod`
 
 Proxies an existing MCP server, transforming its tools via natural language.
 
@@ -147,9 +147,9 @@ Delegates to: `mcpblox` (npm: `mcpblox@0.1.1`)
 
 **Usage:**
 ```
-mcpx mod --upstream <command> --prompt <text> [options]
-mcpx mod --upstream-url <url> --prompt <text> [options]
-cat url | mcpx mod --prompt <text> [options]
+mcpknife mod --upstream <command> --prompt <text> [options]
+mcpknife mod --upstream-url <url> --prompt <text> [options]
+cat url | mcpknife mod --prompt <text> [options]
 ```
 
 **Options:**
@@ -179,7 +179,7 @@ Without a `--prompt`, acts as a transparent pass-through proxy.
 
 ---
 
-### `mcpx ui`
+### `mcpknife ui`
 
 Wraps an existing MCP server, auto-generating interactive UIs for its tools.
 
@@ -187,9 +187,9 @@ Delegates to: `mcp-gen-ui` (npm: `mcp-gen-ui@0.1.2`)
 
 **Usage:**
 ```
-mcpx ui --upstream <command> [options]
-mcpx ui --upstream-url <url> [options]
-cat url | mcpx ui [options]
+mcpknife ui --upstream <command> [options]
+mcpknife ui --upstream-url <url> [options]
+cat url | mcpknife ui [options]
 ```
 
 **Options:**
@@ -216,7 +216,7 @@ cat url | mcpx ui [options]
 ## Top-Level CLI
 
 ```
-mcpx <subcommand> [options]
+mcpknife <subcommand> [options]
 
 Subcommands:
   boot    Generate an MCP server from a prompt
@@ -230,19 +230,19 @@ Options:
 
 Each subcommand also supports `--help`:
 ```
-mcpx boot --help
-mcpx mod --help
-mcpx ui --help
+mcpknife boot --help
+mcpknife mod --help
+mcpknife ui --help
 ```
 
 ## Architecture
 
 ```
-mcpx (this package)
-├── bin/mcpx.js          ← CLI entry point
+mcpknife (this package)
+├── bin/mcpknife.js          ← CLI entry point
 ├── src/
 │   ├── cli.ts           ← Subcommand routing and config file loading
-│   ├── config.ts        ← Config file resolution (~/.mcpxrc, ./.mcpxrc)
+│   ├── config.ts        ← Config file resolution (~/.mcpkniferc, ./.mcpkniferc)
 │   ├── spawn.ts         ← Child process spawning with stdio forwarding
 │   ├── boot.ts          ← Builds argv for mcpboot, spawns it
 │   ├── mod.ts           ← Builds argv for mcpblox, spawns it
@@ -257,19 +257,19 @@ mcpx (this package)
 
 ### Delegation Strategy
 
-mcpx delegates to the underlying tools by **spawning their CLI binaries** as child processes. Each subcommand module (`boot.ts`, `mod.ts`, `ui.ts`) resolves the path to the underlying package's binary (via `require.resolve` or the `node_modules/.bin` path), builds an argv array from the merged config + CLI flags, and spawns the process.
+mcpknife delegates to the underlying tools by **spawning their CLI binaries** as child processes. Each subcommand module (`boot.ts`, `mod.ts`, `ui.ts`) resolves the path to the underlying package's binary (via `require.resolve` or the `node_modules/.bin` path), builds an argv array from the merged config + CLI flags, and spawns the process.
 
 This approach was chosen deliberately over library-level delegation because:
 
 1. **The underlying tools are CLI-first.** All three auto-execute on import with no guarded entry point. They parse `process.argv` and manage their own lifecycle. Importing them as libraries would require changes to each package.
-2. **Pipe protocol works naturally.** The tools communicate via stdin/stdout URLs. Spawning preserves this — mcpx just forwards stdio streams to the child process.
-3. **Signal handling is clean.** Each tool manages its own SIGINT/SIGTERM lifecycle. mcpx propagates signals to the child process.
-4. **Zero coupling.** mcpx doesn't track internal API changes in the underlying packages. If mcpblox refactors its internals, mcpx doesn't care — only the CLI contract matters.
+2. **Pipe protocol works naturally.** The tools communicate via stdin/stdout URLs. Spawning preserves this — mcpknife just forwards stdio streams to the child process.
+3. **Signal handling is clean.** Each tool manages its own SIGINT/SIGTERM lifecycle. mcpknife propagates signals to the child process.
+4. **Zero coupling.** mcpknife doesn't track internal API changes in the underlying packages. If mcpblox refactors its internals, mcpknife doesn't care — only the CLI contract matters.
 5. **Startup overhead is negligible.** These are long-running servers. A few hundred ms to spawn a Node process is irrelevant.
 
 ### Spawning Details
 
-For each subcommand, mcpx:
+For each subcommand, mcpknife:
 
 1. Resolves the underlying binary path (e.g., `node_modules/.bin/mcpboot` or `node_modules/mcpboot/dist/index.js`)
 2. Loads and merges config file defaults with CLI flags
@@ -282,22 +282,22 @@ Using `stdio: 'inherit'` ensures stdin/stdout/stderr pass through transparently,
 
 ### Pipe Protocol
 
-The pipe protocol is already implemented in each underlying tool. Since mcpx uses `stdio: 'inherit'`, pipes work transparently:
+The pipe protocol is already implemented in each underlying tool. Since mcpknife uses `stdio: 'inherit'`, pipes work transparently:
 
 ```bash
-mcpx boot --prompt "..." | mcpx mod --prompt "..." | mcpx ui
+mcpknife boot --prompt "..." | mcpknife mod --prompt "..." | mcpknife ui
 ```
 
-- `mcpx boot` spawns `mcpboot` with inherited stdio → mcpboot detects stdout is a pipe → uses port 0 → writes URL to stdout
-- `mcpx mod` spawns `mcpblox` with inherited stdio → mcpblox reads URL from stdin → detects stdout is a pipe → writes URL to stdout
-- `mcpx ui` spawns `mcp-gen-ui` with inherited stdio → mcp-gen-ui reads URL from stdin → serves on port 8000
+- `mcpknife boot` spawns `mcpboot` with inherited stdio → mcpboot detects stdout is a pipe → uses port 0 → writes URL to stdout
+- `mcpknife mod` spawns `mcpblox` with inherited stdio → mcpblox reads URL from stdin → detects stdout is a pipe → writes URL to stdout
+- `mcpknife ui` spawns `mcp-gen-ui` with inherited stdio → mcp-gen-ui reads URL from stdin → serves on port 8000
 
-mcpx adds no logic to the pipe protocol. It is fully transparent.
+mcpknife adds no logic to the pipe protocol. It is fully transparent.
 
 ## Package Details
 
-- **Name:** `mcpx`
-- **Binary:** `mcpx`
+- **Name:** `mcpknife`
+- **Binary:** `mcpknife`
 - **Runtime:** Node.js 18+
 - **Language:** TypeScript
 - **Build:** esbuild (single ESM bundle, consistent with underlying tools)
@@ -308,33 +308,33 @@ mcpx adds no logic to the pipe protocol. It is fully transparent.
   - `commander` — CLI argument parsing
 - **Install:**
   ```bash
-  npm install -g mcpx
+  npm install -g mcpknife
   # or
-  npx mcpx boot --prompt "..."
+  npx mcpknife boot --prompt "..."
   ```
 
 ## Testing Strategy
 
-Since mcpx is a thin delegation layer, testing focuses on:
+Since mcpknife is a thin delegation layer, testing focuses on:
 
 1. **Config file loading** — Correct resolution order (CLI > env > project > user), merging behavior, missing files handled gracefully
 2. **CLI parsing** — Correct subcommand routing and option parsing
 3. **Argument forwarding** — Config + CLI flags are correctly translated into argv for each underlying binary
 4. **Binary resolution** — Underlying tool binaries are found in node_modules
-5. **Pipe integration** — End-to-end pipe chains work (`mcpx boot | mcpx mod | mcpx ui`)
+5. **Pipe integration** — End-to-end pipe chains work (`mcpknife boot | mcpknife mod | mcpknife ui`)
 6. **Signal forwarding** — SIGINT/SIGTERM propagate to child processes
 7. **Error handling** — Missing subcommand, invalid options, missing binary, and child process errors surface clearly
-8. **Help text** — `mcpx --help`, `mcpx boot --help`, etc. produce correct output
+8. **Help text** — `mcpknife --help`, `mcpknife boot --help`, etc. produce correct output
 
 Unit tests use vitest (consistent with underlying tools). Integration tests run actual pipe chains against mock or real MCP servers.
 
 ## Success Criteria
 
-1. `npx mcpx boot --prompt "..." https://some-api.com` produces a working MCP server (identical behavior to `npx mcpboot`)
-2. `npx mcpx mod --upstream-url http://... --prompt "..."` transforms tools (identical to `npx mcpblox`)
-3. `npx mcpx ui --upstream-url http://...` generates UIs (identical to `npx mcp-gen-ui`)
-4. Pipe chains work: `mcpx boot ... | mcpx mod ... | mcpx ui`
-5. `mcpx --help` and `mcpx <subcommand> --help` produce clear, useful output
-6. Single `npm install -g mcpx` gets you all three tools
-7. Config file at `~/.mcpxrc` eliminates flag repetition across pipe stages
+1. `npx mcpknife boot --prompt "..." https://some-api.com` produces a working MCP server (identical behavior to `npx mcpboot`)
+2. `npx mcpknife mod --upstream-url http://... --prompt "..."` transforms tools (identical to `npx mcpblox`)
+3. `npx mcpknife ui --upstream-url http://...` generates UIs (identical to `npx mcp-gen-ui`)
+4. Pipe chains work: `mcpknife boot ... | mcpknife mod ... | mcpknife ui`
+5. `mcpknife --help` and `mcpknife <subcommand> --help` produce clear, useful output
+6. Single `npm install -g mcpknife` gets you all three tools
+7. Config file at `~/.mcpkniferc` eliminates flag repetition across pipe stages
 8. CLI flags override config file values

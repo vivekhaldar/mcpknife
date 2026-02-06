@@ -1,4 +1,4 @@
-// ABOUTME: End-to-end integration tests that verify the full mcpx flow.
+// ABOUTME: End-to-end integration tests that verify the full mcpknife flow.
 // ABOUTME: Tests the built binary with real subcommand dispatch, config injection, and error handling.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -47,19 +47,19 @@ function run(
 
 describe("integration", () => {
   describe("help passthrough", () => {
-    it("mcpx boot --help exits 0 and shows mcpboot help", () => {
+    it("mcpknife boot --help exits 0 and shows mcpboot help", () => {
       const result = run(["boot", "--help"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("mcpboot");
     });
 
-    it("mcpx mod --help exits 0 and shows mcpblox help", () => {
+    it("mcpknife mod --help exits 0 and shows mcpblox help", () => {
       const result = run(["mod", "--help"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("mcpblox");
     });
 
-    it("mcpx ui --help exits 0 and shows mcp-gen-ui help", () => {
+    it("mcpknife ui --help exits 0 and shows mcp-gen-ui help", () => {
       const result = run(["ui", "--help"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("mcp-gen-ui");
@@ -70,16 +70,16 @@ describe("integration", () => {
     let tmpDir: string;
 
     beforeEach(() => {
-      tmpDir = mkdtempSync(path.join(os.tmpdir(), "mcpx-integration-"));
+      tmpDir = mkdtempSync(path.join(os.tmpdir(), "mcpknife-integration-"));
     });
 
     afterEach(() => {
       rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    it("injects config values from .mcpxrc as flags", () => {
+    it("injects config values from .mcpkniferc as flags", () => {
       writeFileSync(
-        path.join(tmpDir, ".mcpxrc"),
+        path.join(tmpDir, ".mcpkniferc"),
         JSON.stringify({ provider: "openai", model: "gpt-4o" })
       );
       // Run with --help so the underlying tool prints help and exits.
@@ -91,7 +91,7 @@ describe("integration", () => {
 
     it("CLI flags override config values", () => {
       writeFileSync(
-        path.join(tmpDir, ".mcpxrc"),
+        path.join(tmpDir, ".mcpkniferc"),
         JSON.stringify({ provider: "openai" })
       );
       // Pass --provider explicitly — config injection should NOT add a duplicate.
@@ -119,15 +119,15 @@ describe("integration", () => {
       );
       const result = run(["--version"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe(`mcpx v${pkgJson.version}`);
+      expect(result.stdout).toBe(`mcpknife v${pkgJson.version}`);
     });
   });
 
-  describe("mcpx help", () => {
+  describe("mcpknife help", () => {
     it("prints top-level help with no args", () => {
       const result = run([]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("mcpknife");
       expect(result.stdout).toContain("Commands:");
       expect(result.stdout).toContain("boot");
       expect(result.stdout).toContain("mod");
@@ -136,7 +136,7 @@ describe("integration", () => {
   });
 
   describe("signal handling", () => {
-    it("SIGINT to mcpx terminates the child process", async () => {
+    it("SIGINT to mcpknife terminates the child process", async () => {
       const child = execFile(process.execPath, [
         path.join(FIXTURES, "sleep-long.js"),
       ]);

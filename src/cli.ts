@@ -24,10 +24,10 @@ try {
 }
 
 function printHelp(): void {
-  console.log(`mcpx — unified CLI for the MCP power-tool suite
+  console.log(`mcpknife — unified CLI for the MCP power-tool suite
 
 Usage:
-  mcpx <command> [options]
+  mcpknife <command> [options]
 
 Commands:
   boot    Generate an MCP server from a prompt and API docs
@@ -39,19 +39,19 @@ Options:
   --version   Show version number
 
 Configuration:
-  mcpx reads defaults from ~/.mcpxrc and ./.mcpxrc (JSON).
+  mcpknife reads defaults from ~/.mcpkniferc and ./.mcpkniferc (JSON).
   Supported fields: provider, model, apiKey, verbose.
   CLI flags override config file values.
 
 Examples:
-  mcpx boot --prompt "Hacker News API" https://github.com/HackerNews/API
-  mcpx mod --upstream "npx some-server" --prompt "hide write tools"
-  mcpx ui --upstream-url http://localhost:3000/mcp
+  mcpknife boot --prompt "Hacker News API" https://github.com/HackerNews/API
+  mcpknife mod --upstream "npx some-server" --prompt "hide write tools"
+  mcpknife ui --upstream-url http://localhost:3000/mcp
 
   # Full pipeline
-  mcpx boot --prompt "Yahoo Finance" | mcpx mod --prompt "combine tools" | mcpx ui
+  mcpknife boot --prompt "Yahoo Finance" | mcpknife mod --prompt "combine tools" | mcpknife ui
 
-Run 'mcpx <command> --help' for command-specific options.`);
+Run 'mcpknife <command> --help' for command-specific options.`);
 }
 
 const args = process.argv.slice(2);
@@ -62,7 +62,7 @@ if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
 }
 
 if (args[0] === "--version" || args[0] === "-V") {
-  console.log(`mcpx v${version}`);
+  console.log(`mcpknife v${version}`);
   process.exit(0);
 }
 
@@ -70,8 +70,8 @@ const subcommand = args[0];
 const rawArgv = args.slice(1);
 
 if (!BINARY_MAP[subcommand]) {
-  console.error(`mcpx: unknown subcommand '${subcommand}'`);
-  console.error(`Run 'mcpx --help' for usage`);
+  console.error(`mcpknife: unknown subcommand '${subcommand}'`);
+  console.error(`Run 'mcpknife --help' for usage`);
   process.exit(1);
 }
 

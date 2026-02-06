@@ -35,7 +35,7 @@ describe("cli", () => {
     it("prints help when no arguments provided", () => {
       const result = run([]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("mcpknife");
       expect(result.stdout).toContain("boot");
       expect(result.stdout).toContain("mod");
       expect(result.stdout).toContain("ui");
@@ -44,14 +44,14 @@ describe("cli", () => {
     it("prints help with --help flag", () => {
       const result = run(["--help"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("mcpknife");
       expect(result.stdout).toContain("Commands:");
     });
 
     it("prints help with -h flag", () => {
       const result = run(["-h"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("mcpx");
+      expect(result.stdout).toContain("mcpknife");
     });
   });
 
@@ -59,13 +59,13 @@ describe("cli", () => {
     it("prints version with --version flag", () => {
       const result = run(["--version"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toMatch(/^mcpx v\d+\.\d+\.\d+$/);
+      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+$/);
     });
 
     it("prints version with -V flag", () => {
       const result = run(["-V"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toMatch(/^mcpx v\d+\.\d+\.\d+$/);
+      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+$/);
     });
   });
 

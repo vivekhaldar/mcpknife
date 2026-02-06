@@ -1,5 +1,5 @@
 // ABOUTME: Tests for config file loading and merging.
-// ABOUTME: Verifies ~/.mcpxrc and ./.mcpxrc are read, merged, and edge cases handled.
+// ABOUTME: Verifies ~/.mcpkniferc and ./.mcpkniferc are read, merged, and edge cases handled.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
@@ -14,7 +14,7 @@ import { loadConfig } from "../src/config.js";
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(path.join(os.tmpdir(), "mcpx-config-test-"));
+  tmpDir = mkdtempSync(path.join(os.tmpdir(), "mcpknife-config-test-"));
 });
 
 afterEach(() => {
@@ -30,11 +30,11 @@ describe("loadConfig", () => {
     expect(config).toEqual({});
   });
 
-  it("loads user config from ~/.mcpxrc", () => {
+  it("loads user config from ~/.mcpkniferc", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
     writeFileSync(
-      path.join(homeDir, ".mcpxrc"),
+      path.join(homeDir, ".mcpkniferc"),
       JSON.stringify({ provider: "anthropic", model: "claude-sonnet-4-20250514" })
     );
 
@@ -43,11 +43,11 @@ describe("loadConfig", () => {
     expect(config.model).toBe("claude-sonnet-4-20250514");
   });
 
-  it("loads project config from ./.mcpxrc", () => {
+  it("loads project config from ./.mcpkniferc", () => {
     const cwd = path.join(tmpDir, "project");
     mkdirSync(cwd);
     writeFileSync(
-      path.join(cwd, ".mcpxrc"),
+      path.join(cwd, ".mcpkniferc"),
       JSON.stringify({ provider: "openai", apiKey: "sk-test" })
     );
 
@@ -63,11 +63,11 @@ describe("loadConfig", () => {
     mkdirSync(cwd);
 
     writeFileSync(
-      path.join(homeDir, ".mcpxrc"),
+      path.join(homeDir, ".mcpkniferc"),
       JSON.stringify({ provider: "anthropic", model: "claude-sonnet-4-20250514", apiKey: "home-key" })
     );
     writeFileSync(
-      path.join(cwd, ".mcpxrc"),
+      path.join(cwd, ".mcpkniferc"),
       JSON.stringify({ provider: "openai" })
     );
 
@@ -89,19 +89,19 @@ describe("loadConfig", () => {
   it("throws on malformed JSON with file path in error", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
-    const filePath = path.join(homeDir, ".mcpxrc");
+    const filePath = path.join(homeDir, ".mcpkniferc");
     writeFileSync(filePath, "{ not valid json }");
 
     expect(() =>
       loadConfig({ homeDir, cwd: path.join(tmpDir, "nocwd") })
-    ).toThrow(/invalid JSON.*\.mcpxrc/);
+    ).toThrow(/invalid JSON.*\.mcpkniferc/);
   });
 
   it("ignores unknown fields", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
     writeFileSync(
-      path.join(homeDir, ".mcpxrc"),
+      path.join(homeDir, ".mcpkniferc"),
       JSON.stringify({ provider: "anthropic", unknownField: "whatever", anotherOne: 42 })
     );
 
@@ -114,7 +114,7 @@ describe("loadConfig", () => {
   it("treats empty file as missing (no error)", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
-    writeFileSync(path.join(homeDir, ".mcpxrc"), "");
+    writeFileSync(path.join(homeDir, ".mcpkniferc"), "");
 
     const config = loadConfig({ homeDir, cwd: path.join(tmpDir, "nocwd") });
     expect(config).toEqual({});
@@ -123,7 +123,7 @@ describe("loadConfig", () => {
   it("treats null JSON value as empty config", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
-    writeFileSync(path.join(homeDir, ".mcpxrc"), "null");
+    writeFileSync(path.join(homeDir, ".mcpkniferc"), "null");
 
     const config = loadConfig({ homeDir, cwd: path.join(tmpDir, "nocwd") });
     expect(config).toEqual({});
@@ -132,7 +132,7 @@ describe("loadConfig", () => {
   it("treats non-object JSON value as empty config", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
-    writeFileSync(path.join(homeDir, ".mcpxrc"), '"just a string"');
+    writeFileSync(path.join(homeDir, ".mcpkniferc"), '"just a string"');
 
     const config = loadConfig({ homeDir, cwd: path.join(tmpDir, "nocwd") });
     expect(config).toEqual({});
@@ -141,7 +141,7 @@ describe("loadConfig", () => {
   it("all fields are optional", () => {
     const homeDir = path.join(tmpDir, "home");
     mkdirSync(homeDir);
-    writeFileSync(path.join(homeDir, ".mcpxrc"), "{}");
+    writeFileSync(path.join(homeDir, ".mcpkniferc"), "{}");
 
     const config = loadConfig({ homeDir, cwd: path.join(tmpDir, "nocwd") });
     expect(config).toEqual({});
@@ -155,7 +155,7 @@ describe("loadConfig", () => {
     const cwd = path.join(tmpDir, "project");
     mkdirSync(cwd);
     writeFileSync(
-      path.join(cwd, ".mcpxrc"),
+      path.join(cwd, ".mcpkniferc"),
       JSON.stringify({ verbose: true })
     );
 

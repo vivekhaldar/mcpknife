@@ -1,16 +1,16 @@
-# mcpx — Engineering Design
+# mcpknife — Engineering Design
 
 ## 1. System Context
 
-mcpx is a CLI multiplexer. It parses a subcommand name, loads shared configuration, and spawns the corresponding upstream binary with the correct arguments. It owns no business logic — all MCP functionality lives in the three underlying packages.
+mcpknife is a CLI multiplexer. It parses a subcommand name, loads shared configuration, and spawns the corresponding upstream binary with the correct arguments. It owns no business logic — all MCP functionality lives in the three underlying packages.
 
 ```
                          ┌──────────────────┐
-                         │       mcpx       │
+                         │       mcpknife       │
                          │                  │
   CLI args ──────────────▶  parse subcommand │
-  ~/.mcpxrc ─────────────▶  load config      │
-  ./.mcpxrc ─────────────▶  merge & build    │
+  ~/.mcpkniferc ─────────────▶  load config      │
+  ./.mcpkniferc ─────────────▶  merge & build    │
                          │  argv             │
                          │                  │
                          │  spawn child     │◀── stdio: 'inherit'
@@ -24,19 +24,19 @@ mcpx is a CLI multiplexer. It parses a subcommand name, loads shared configurati
         └──────────┘      └──────────┘      └──────────┘
 ```
 
-The design prioritizes transparency: mcpx should be invisible at runtime. The spawned tool sees the same environment it would see if invoked directly — same stdio streams, same signals, same exit behavior.
+The design prioritizes transparency: mcpknife should be invisible at runtime. The spawned tool sees the same environment it would see if invoked directly — same stdio streams, same signals, same exit behavior.
 
 ## 2. Binary Resolution
 
 ### Problem
 
-mcpx needs to find the executable for each underlying tool. This must work across multiple installation scenarios:
+mcpknife needs to find the executable for each underlying tool. This must work across multiple installation scenarios:
 
 | Scenario | Binary location |
 |----------|----------------|
-| Global install (`npm i -g mcpx`) | Sibling in global `node_modules/.bin/` |
-| npx (`npx mcpx boot ...`) | Temp directory managed by npm |
-| Local install (`node_modules/.bin/mcpx`) | Project `node_modules/.bin/` |
+| Global install (`npm i -g mcpknife`) | Sibling in global `node_modules/.bin/` |
+| npx (`npx mcpknife boot ...`) | Temp directory managed by npm |
+| Local install (`node_modules/.bin/mcpknife`) | Project `node_modules/.bin/` |
 | Development (`tsx src/cli.ts`) | Local or linked `node_modules/` |
 
 ### Approach: Module Resolution
@@ -65,9 +65,9 @@ function resolveBinary(packageName: string): string {
 
 ### Why Not Alternatives
 
-**`which` / PATH lookup:** Unreliable. When run via `npx`, the underlying binaries may not be on PATH unless they're also listed in mcpx's `package.json` bin field. And we don't want to add three extra bin entries — that defeats the purpose of a unified CLI.
+**`which` / PATH lookup:** Unreliable. When run via `npx`, the underlying binaries may not be on PATH unless they're also listed in mcpknife's `package.json` bin field. And we don't want to add three extra bin entries — that defeats the purpose of a unified CLI.
 
-**Hardcoded paths (`dist/index.js`):** Fragile. If an underlying package changes its build output path, mcpx breaks silently. Reading from `package.json` bin is the contract.
+**Hardcoded paths (`dist/index.js`):** Fragile. If an underlying package changes its build output path, mcpknife breaks silently. Reading from `package.json` bin is the contract.
 
 **`node_modules/.bin/` direct access:** Doesn't work reliably across global/local/npx installs. The `.bin` directory might not exist or might be in a different location. Module resolution handles all these cases.
 
@@ -81,7 +81,7 @@ const BINARY_MAP: Record<string, string> = {
 };
 ```
 
-Resolution is performed once at subcommand dispatch, not at startup. If the user runs `mcpx boot`, we only resolve `mcpboot` — we don't validate that all three binaries exist.
+Resolution is performed once at subcommand dispatch, not at startup. If the user runs `mcpknife boot`, we only resolve `mcpboot` — we don't validate that all three binaries exist.
 
 ## 3. Config File
 
@@ -89,8 +89,8 @@ Resolution is performed once at subcommand dispatch, not at startup. If the user
 
 Two config files, in precedence order:
 
-1. **Project config:** `.mcpxrc` in the current working directory
-2. **User config:** `~/.mcpxrc` in the user's home directory
+1. **Project config:** `.mcpkniferc` in the current working directory
+2. **User config:** `~/.mcpkniferc` in the user's home directory
 
 Project config fields override user config fields. CLI flags override both.
 
@@ -98,9 +98,9 @@ Project config fields override user config fields. CLI flags override both.
 
 Tools like `.npmrc` and `.eslintrc` walk up the directory tree to find the nearest config file. We don't do this because:
 
-1. **Pipe chains share a cwd.** All stages in `mcpx boot ... | mcpx mod ... | mcpx ui` run in the same working directory. Walking up adds no value when cwd is the same for all invocations.
+1. **Pipe chains share a cwd.** All stages in `mcpknife boot ... | mcpknife mod ... | mcpknife ui` run in the same working directory. Walking up adds no value when cwd is the same for all invocations.
 2. **Simplicity.** Walking up adds complexity (symlink handling, filesystem root detection, mount boundaries) for no practical benefit.
-3. **Predictability.** Users can reason about exactly two locations. No surprises from a `.mcpxrc` in an ancestor directory they forgot about.
+3. **Predictability.** Users can reason about exactly two locations. No surprises from a `.mcpkniferc` in an ancestor directory they forgot about.
 
 ### File Format: JSON
 
@@ -120,7 +120,7 @@ Tools like `.npmrc` and `.eslintrc` walk up the directory tree to find the neare
 ### Schema
 
 ```ts
-interface McpxConfig {
+interface McpknifeConfig {
   provider?: "anthropic" | "openai";
   model?: string;
   apiKey?: string;
@@ -128,15 +128,15 @@ interface McpxConfig {
 }
 ```
 
-All fields optional. Unknown fields are silently ignored (forward compatibility — if a future version adds fields, older mcpx versions won't break).
+All fields optional. Unknown fields are silently ignored (forward compatibility — if a future version adds fields, older mcpknife versions won't break).
 
 ### Loading Algorithm
 
 ```
-function loadConfig(): McpxConfig
+function loadConfig(): McpknifeConfig
   1. merged = {}
-  2. Try read ~/.mcpxrc → parse JSON → shallow merge into merged
-  3. Try read ./.mcpxrc → parse JSON → shallow merge into merged
+  2. Try read ~/.mcpkniferc → parse JSON → shallow merge into merged
+  3. Try read ./.mcpkniferc → parse JSON → shallow merge into merged
      (project overrides user)
   4. Return merged
 ```
@@ -160,16 +160,16 @@ The config file may contain API keys. This is a deliberate trade-off:
 
 ### The Problem
 
-mcpx must translate config file defaults + CLI flags into the argv that the underlying binary expects. The challenge: we must not duplicate Commander option definitions from the three underlying tools.
+mcpknife must translate config file defaults + CLI flags into the argv that the underlying binary expects. The challenge: we must not duplicate Commander option definitions from the three underlying tools.
 
 ### Approach: Passthrough With Injection
 
-mcpx does **not** parse subcommand-level flags. It treats everything after the subcommand name as an opaque argv array. Config defaults are injected only for known common flags that are absent from the raw argv.
+mcpknife does **not** parse subcommand-level flags. It treats everything after the subcommand name as an opaque argv array. Config defaults are injected only for known common flags that are absent from the raw argv.
 
 ```
-User types:   mcpx boot --prompt "HN API" --port 3000
+User types:   mcpknife boot --prompt "HN API" --port 3000
               ^^^^       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              mcpx       passed through verbatim to mcpboot
+              mcpknife       passed through verbatim to mcpboot
 
 Config file:  { "provider": "anthropic", "apiKey": "sk-..." }
 
@@ -199,7 +199,7 @@ This handles both `--provider openai` (two separate argv entries) and `--provide
 
 ```ts
 const CONFIG_FLAG_MAP: Array<{
-  configKey: keyof McpxConfig;
+  configKey: keyof McpknifeConfig;
   flag: string;
   isBoolean: boolean;
 }> = [
@@ -217,20 +217,20 @@ For each entry:
 
 ### Why Not Parse With Commander
 
-The alternative is to define all options in mcpx's Commander setup (mirroring each tool), parse them, merge with config, and reconstruct argv. This was rejected because:
+The alternative is to define all options in mcpknife's Commander setup (mirroring each tool), parse them, merge with config, and reconstruct argv. This was rejected because:
 
-1. **Duplication.** Every option from all three tools would be defined twice — once in the underlying tool and once in mcpx. When a tool adds an option, mcpx must be updated.
-2. **Help text divergence.** mcpx's Commander-generated help could drift from the underlying tool's help.
+1. **Duplication.** Every option from all three tools would be defined twice — once in the underlying tool and once in mcpknife. When a tool adds an option, mcpknife must be updated.
+2. **Help text divergence.** mcpknife's Commander-generated help could drift from the underlying tool's help.
 3. **More code.** Three full Commander program definitions vs. four lines of flag-injection logic.
 
-The passthrough approach means mcpx only knows about the four common config fields. Everything else flows through untouched.
+The passthrough approach means mcpknife only knows about the four common config fields. Everything else flows through untouched.
 
 ### Forwarding `--help`
 
-When the user runs `mcpx boot --help`, the `--help` flag passes through to mcpboot. Commander in mcpboot handles it and prints help. The program name in the output will say `mcpboot`, not `mcpx boot`.
+When the user runs `mcpknife boot --help`, the `--help` flag passes through to mcpboot. Commander in mcpboot handles it and prints help. The program name in the output will say `mcpboot`, not `mcpknife boot`.
 
 This is a known cosmetic limitation. The output is still correct and useful. Fixing it would require either:
-- Parsing `--help` in mcpx and printing custom help (duplicating option definitions)
+- Parsing `--help` in mcpknife and printing custom help (duplicating option definitions)
 - Patching `process.argv[1]` before spawning (fragile)
 
 Neither is worth the complexity for v1.
@@ -246,14 +246,14 @@ const child = spawn(process.execPath, [binaryPath, ...argv], {
 });
 ```
 
-**`process.execPath`** — Uses the same Node binary that's running mcpx. Ensures version consistency and works correctly under nvm/fnm/volta.
+**`process.execPath`** — Uses the same Node binary that's running mcpknife. Ensures version consistency and works correctly under nvm/fnm/volta.
 
-**`stdio: "inherit"`** — The child process shares mcpx's stdin, stdout, and stderr file descriptors directly. The OS kernel handles the plumbing — mcpx is not in the data path. This is critical for:
-- **Pipe protocol.** When `mcpx boot ... | mcpx mod ...`, mcpboot's stdout IS the pipe to mcpblox's stdin. mcpx doesn't buffer or relay data.
+**`stdio: "inherit"`** — The child process shares mcpknife's stdin, stdout, and stderr file descriptors directly. The OS kernel handles the plumbing — mcpknife is not in the data path. This is critical for:
+- **Pipe protocol.** When `mcpknife boot ... | mcpknife mod ...`, mcpboot's stdout IS the pipe to mcpblox's stdin. mcpknife doesn't buffer or relay data.
 - **TTY detection.** The child can call `process.stdout.isTTY` and get the correct answer (true if terminal, false if piped). This is how the underlying tools decide whether to use port 0 and write URLs.
 - **Performance.** Zero-copy. No serialization overhead.
 
-**`process.env`** — Full environment pass-through. API keys in environment variables work without mcpx knowing about them.
+**`process.env`** — Full environment pass-through. API keys in environment variables work without mcpknife knowing about them.
 
 ### Signal Forwarding
 
@@ -272,8 +272,8 @@ forwardSignal("SIGTERM");
 
 When the user hits Ctrl+C:
 1. The OS sends SIGINT to the foreground process group
-2. Both mcpx and the child may receive it (depending on how the shell manages process groups)
-3. mcpx's handler forwards SIGINT to the child (idempotent if child already received it)
+2. Both mcpknife and the child may receive it (depending on how the shell manages process groups)
+3. mcpknife's handler forwards SIGINT to the child (idempotent if child already received it)
 4. The child shuts down gracefully (each tool has its own SIGINT handler)
 
 **SIGPIPE** is not forwarded — it's handled by the child process itself when the downstream pipe closes.
@@ -291,7 +291,7 @@ child.on("close", (code, signal) => {
 });
 ```
 
-mcpx exits with the child's exit code. If the child was killed by a signal (e.g., SIGTERM), mcpx re-raises the same signal on itself so the parent shell sees the correct exit status.
+mcpknife exits with the child's exit code. If the child was killed by a signal (e.g., SIGTERM), mcpknife re-raises the same signal on itself so the parent shell sees the correct exit status.
 
 ### Error Handling
 
@@ -300,10 +300,10 @@ If the child process fails to spawn (e.g., binary not found):
 ```ts
 child.on("error", (err) => {
   if (err.code === "ENOENT") {
-    console.error(`mcpx: binary not found for '${subcommand}': ${binaryPath}`);
-    console.error(`Try reinstalling: npm install -g mcpx`);
+    console.error(`mcpknife: binary not found for '${subcommand}': ${binaryPath}`);
+    console.error(`Try reinstalling: npm install -g mcpknife`);
   } else {
-    console.error(`mcpx: failed to start '${subcommand}': ${err.message}`);
+    console.error(`mcpknife: failed to start '${subcommand}': ${err.message}`);
   }
   process.exit(1);
 });
@@ -313,7 +313,7 @@ child.on("error", (err) => {
 
 ### Top-Level Parsing
 
-mcpx uses Commander only for the top-level command — subcommand name, `--version`, and `--help`. It does NOT register subcommands with Commander (which would try to parse their flags).
+mcpknife uses Commander only for the top-level command — subcommand name, `--version`, and `--help`. It does NOT register subcommands with Commander (which would try to parse their flags).
 
 ```ts
 // Manually extract the subcommand from process.argv
@@ -333,8 +333,8 @@ const subcommand = args[0];
 const subcommandArgv = args.slice(1);
 
 if (!BINARY_MAP[subcommand]) {
-  console.error(`mcpx: unknown subcommand '${subcommand}'`);
-  console.error(`Run 'mcpx --help' for usage`);
+  console.error(`mcpknife: unknown subcommand '${subcommand}'`);
+  console.error(`Run 'mcpknife --help' for usage`);
   process.exit(1);
 }
 ```
@@ -350,10 +350,10 @@ Commander's `.command()` API registers subcommands and parses their options. We 
 ### Help Text
 
 ```
-mcpx — unified CLI for the MCP power-tool suite
+mcpknife — unified CLI for the MCP power-tool suite
 
 Usage:
-  mcpx <command> [options]
+  mcpknife <command> [options]
 
 Commands:
   boot    Generate an MCP server from a prompt and API docs
@@ -365,27 +365,27 @@ Options:
   --version   Show version number
 
 Configuration:
-  mcpx reads defaults from ~/.mcpxrc and ./.mcpxrc (JSON).
+  mcpknife reads defaults from ~/.mcpkniferc and ./.mcpkniferc (JSON).
   Supported fields: provider, model, apiKey, verbose.
   CLI flags override config file values.
 
 Examples:
-  mcpx boot --prompt "Hacker News API" https://github.com/HackerNews/API
-  mcpx mod --upstream "npx some-server" --prompt "hide write tools"
-  mcpx ui --upstream-url http://localhost:3000/mcp
+  mcpknife boot --prompt "Hacker News API" https://github.com/HackerNews/API
+  mcpknife mod --upstream "npx some-server" --prompt "hide write tools"
+  mcpknife ui --upstream-url http://localhost:3000/mcp
 
   # Full pipeline
-  mcpx boot --prompt "Yahoo Finance" | mcpx mod --prompt "combine tools" | mcpx ui
+  mcpknife boot --prompt "Yahoo Finance" | mcpknife mod --prompt "combine tools" | mcpknife ui
 
-Run 'mcpx <command> --help' for command-specific options.
+Run 'mcpknife <command> --help' for command-specific options.
 ```
 
 ## 7. Project Structure
 
 ```
-mcpx/
+mcpknife/
 ├── bin/
-│   └── mcpx.js             ← Shebang wrapper: #!/usr/bin/env node
+│   └── mcpknife.js             ← Shebang wrapper: #!/usr/bin/env node
 ├── src/
 │   ├── cli.ts              ← Entry point: argv parsing, dispatch
 │   ├── config.ts           ← Config file loading and merging
@@ -407,14 +407,14 @@ mcpx/
 
 ### Build
 
-esbuild bundles `src/cli.ts` into `dist/cli.js` (ESM, Node 18 target). The `bin/mcpx.js` file is a thin shebang wrapper:
+esbuild bundles `src/cli.ts` into `dist/cli.js` (ESM, Node 18 target). The `bin/mcpknife.js` file is a thin shebang wrapper:
 
 ```js
 #!/usr/bin/env node
 import "./dist/cli.js";
 ```
 
-Alternatively, esbuild can inject the shebang banner directly into `dist/cli.js` (as the underlying tools do), making `bin/mcpx.js` unnecessary. We use the banner approach for consistency:
+Alternatively, esbuild can inject the shebang banner directly into `dist/cli.js` (as the underlying tools do), making `bin/mcpknife.js` unnecessary. We use the banner approach for consistency:
 
 ```ts
 // esbuild.config.ts
@@ -451,15 +451,15 @@ esbuild.build({
 
 **No Commander dependency.** We parse argv manually (three lines). Adding Commander for `--help` and `--version` is overkill.
 
-**Semver ranges (`^`) for underlying tools.** Patch and minor updates are picked up automatically. This is appropriate because mcpx's contract with the underlying tools is their CLI interface, which is stable across minor versions. If a tool makes a breaking CLI change, it bumps its major version, and the `^` range won't pick it up.
+**Semver ranges (`^`) for underlying tools.** Patch and minor updates are picked up automatically. This is appropriate because mcpknife's contract with the underlying tools is their CLI interface, which is stable across minor versions. If a tool makes a breaking CLI change, it bumps its major version, and the `^` range won't pick it up.
 
 ## 9. Testing Strategy
 
 ### Unit Tests
 
 **`config.test.ts`** — Config file loading:
-- Loads `~/.mcpxrc` when it exists
-- Loads `./.mcpxrc` when it exists
+- Loads `~/.mcpkniferc` when it exists
+- Loads `./.mcpkniferc` when it exists
 - Project config overrides user config (field by field)
 - Missing files are silently ignored (no error)
 - Malformed JSON produces a clear error with file path
@@ -484,25 +484,25 @@ esbuild.build({
 - Original argv order is preserved (injected flags prepended)
 
 **`cli.test.ts`** — Top-level dispatch:
-- `mcpx boot ...` dispatches to mcpboot
-- `mcpx mod ...` dispatches to mcpblox
-- `mcpx ui ...` dispatches to mcp-gen-ui
+- `mcpknife boot ...` dispatches to mcpboot
+- `mcpknife mod ...` dispatches to mcpblox
+- `mcpknife ui ...` dispatches to mcp-gen-ui
 - Unknown subcommand prints error and exits 1
 - No subcommand prints help and exits 0
-- `mcpx --help` prints help and exits 0
-- `mcpx --version` prints version and exits 0
+- `mcpknife --help` prints help and exits 0
+- `mcpknife --version` prints version and exits 0
 
 ### Integration Tests
 
 **`integration.test.ts`** — End-to-end:
-- `mcpx boot --help` produces mcpboot's help text (exit 0)
-- `mcpx mod --help` produces mcpblox's help text (exit 0)
-- `mcpx ui --help` produces mcp-gen-ui's help text (exit 0)
+- `mcpknife boot --help` produces mcpboot's help text (exit 0)
+- `mcpknife mod --help` produces mcpblox's help text (exit 0)
+- `mcpknife ui --help` produces mcp-gen-ui's help text (exit 0)
 - Config file values appear in spawned process's argv (use `--dry-run` to verify plan output without starting servers)
-- SIGINT to mcpx terminates the child process
+- SIGINT to mcpknife terminates the child process
 
 Pipe chain integration tests (these require API keys and are tagged as slow/optional):
-- `mcpx boot --prompt "..." | mcpx mod --prompt "..." | mcpx ui` starts three servers in a chain
+- `mcpknife boot --prompt "..." | mcpknife mod --prompt "..." | mcpknife ui` starts three servers in a chain
 - Each server is reachable at its respective URL
 
 ## 10. Task Breakdown
@@ -517,16 +517,16 @@ Each task is self-contained and testable. Tasks are ordered so that each builds 
 
 **Steps:**
 1. Create `package.json` with:
-   - `name`: `"mcpx"`
+   - `name`: `"mcpknife"`
    - `version`: `"0.1.0"`
    - `type`: `"module"`
-   - `bin`: `{ "mcpx": "dist/cli.js" }`
+   - `bin`: `{ "mcpknife": "dist/cli.js" }`
    - `scripts`: `{ "build": "node esbuild.config.js", "test": "vitest run", "dev": "tsx src/cli.ts" }`
    - `dependencies`: `{ "mcpboot": "^0.1.0", "mcpblox": "^0.1.1", "mcp-gen-ui": "^0.1.2" }`
    - `devDependencies`: `{ "esbuild": "^0.25.0", "typescript": "^5.4.0", "vitest": "^3.0.0", "tsx": "^4.0.0" }`
 2. Create `tsconfig.json`: target `ES2022`, module `NodeNext`, moduleResolution `NodeNext`, outDir `dist`, strict `true`
 3. Create `esbuild.config.js`: bundle `src/cli.ts` → `dist/cli.js`, ESM, node18 platform, shebang banner
-4. Create stub `src/cli.ts` that prints `"mcpx v0.1.0"` and exits
+4. Create stub `src/cli.ts` that prints `"mcpknife v0.1.0"` and exits
 5. Run `npm install`
 6. Verify: `npm run build` succeeds, `node dist/cli.js` prints version, `npm test` runs (no tests yet is ok)
 
@@ -536,26 +536,26 @@ Each task is self-contained and testable. Tasks are ordered so that each builds 
 
 ### Task 2: Implement Config File Loading [DONE]
 
-**Goal:** `loadConfig()` function that reads and merges `~/.mcpxrc` and `./.mcpxrc`.
+**Goal:** `loadConfig()` function that reads and merges `~/.mcpkniferc` and `./.mcpkniferc`.
 
 **File:** `src/config.ts`
 
 **Interface:**
 ```ts
-export interface McpxConfig {
+export interface McpknifeConfig {
   provider?: string;
   model?: string;
   apiKey?: string;
   verbose?: boolean;
 }
 
-export function loadConfig(): McpxConfig;
+export function loadConfig(): McpknifeConfig;
 ```
 
 **Behavior:**
 1. Initialize `merged` as empty object
-2. Attempt to read `~/.mcpxrc` (use `os.homedir()`). If exists, `JSON.parse` and shallow-merge into `merged`. If doesn't exist, skip silently. If malformed JSON, throw: `"mcpx: invalid JSON in ~/.mcpxrc: <parse error message>"`
-3. Attempt to read `./.mcpxrc` (relative to `process.cwd()`). Same logic. Fields from project config overwrite user config.
+2. Attempt to read `~/.mcpkniferc` (use `os.homedir()`). If exists, `JSON.parse` and shallow-merge into `merged`. If doesn't exist, skip silently. If malformed JSON, throw: `"mcpknife: invalid JSON in ~/.mcpkniferc: <parse error message>"`
+3. Attempt to read `./.mcpkniferc` (relative to `process.cwd()`). Same logic. Fields from project config overwrite user config.
 4. Return `merged`
 
 **Edge cases:**
@@ -587,7 +587,7 @@ export function resolveBinary(subcommand: string): string;
 4. Read and parse the package.json
 5. Extract the `bin` field (handle both string and object forms)
 6. Return `path.resolve(packageRoot, binEntry)`
-7. If `require.resolve` throws (package not installed), throw: `"mcpx: package '${packageName}' not found. Try reinstalling: npm install -g mcpx"`
+7. If `require.resolve` throws (package not installed), throw: `"mcpknife: package '${packageName}' not found. Try reinstalling: npm install -g mcpknife"`
 
 **Tests:** `test/resolve.test.ts` — see Section 9. Since the packages are devDependencies (installed via `npm install`), the tests can resolve real paths.
 
@@ -603,7 +603,7 @@ export function resolveBinary(subcommand: string): string;
 
 **Interface:**
 ```ts
-export function buildArgv(config: McpxConfig, rawArgv: string[]): string[];
+export function buildArgv(config: McpknifeConfig, rawArgv: string[]): string[];
 ```
 
 **Behavior:**
@@ -675,7 +675,7 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 **Behavior:**
 1. Read `process.argv.slice(2)` into `args`
 2. If `args` is empty or `args[0]` is `--help` / `-h`: print help text (see Section 6), exit 0
-3. If `args[0]` is `--version` / `-V`: print `mcpx v${version}` (read from package.json), exit 0
+3. If `args[0]` is `--version` / `-V`: print `mcpknife v${version}` (read from package.json), exit 0
 4. Extract `subcommand = args[0]`, `rawArgv = args.slice(1)`
 5. Validate subcommand is in `BINARY_MAP`. If not: print error + suggestion, exit 1
 6. `const config = loadConfig()`
@@ -685,7 +685,7 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 **Tests:** `test/cli.test.ts` — see Section 9. Mock `spawnTool` to verify it's called with correct arguments. Test help/version/unknown subcommand by running the CLI as a child process and checking stdout/stderr/exit code.
 
-**Acceptance:** `npx tsx src/cli.ts boot --help` prints mcpboot's help. `npx tsx src/cli.ts --help` prints mcpx help. `npx tsx src/cli.ts bogus` prints error and exits 1.
+**Acceptance:** `npx tsx src/cli.ts boot --help` prints mcpboot's help. `npx tsx src/cli.ts --help` prints mcpknife help. `npx tsx src/cli.ts bogus` prints error and exits 1.
 
 ---
 
@@ -699,10 +699,10 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 3. Test the built binary: `node dist/cli.js --help`, `node dist/cli.js --version`
 4. Test with each subcommand: `node dist/cli.js boot --help`, `node dist/cli.js mod --help`, `node dist/cli.js ui --help`
 5. Test `npm pack` produces a tarball
-6. Test install from tarball: `npm install -g ./mcpx-0.1.0.tgz && mcpx --help`
+6. Test install from tarball: `npm install -g ./mcpknife-0.1.0.tgz && mcpknife --help`
 7. Add `"files"` field to package.json: `["dist/"]`
 
-**Acceptance:** `npm pack && npm install -g ./mcpx-*.tgz && mcpx boot --help` shows mcpboot help.
+**Acceptance:** `npm pack && npm install -g ./mcpknife-*.tgz && mcpknife boot --help` shows mcpboot help.
 
 ---
 
@@ -714,17 +714,17 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 **Tests to implement:**
 
-1. **Help passthrough**: Spawn `mcpx boot --help` as a child process, verify exit code 0 and stdout contains "mcpboot"
-2. **Help passthrough (mod)**: Same for `mcpx mod --help`, verify "mcpblox" in output
-3. **Help passthrough (ui)**: Same for `mcpx ui --help`, verify "mcp-gen-ui" in output
-4. **Config injection**: Create a temp `.mcpxrc` with `{ "provider": "openai" }`, run `mcpx boot --dry-run --prompt "test"` from that directory, verify the spawned process received `--provider openai` (check output for "openai" provider indication)
+1. **Help passthrough**: Spawn `mcpknife boot --help` as a child process, verify exit code 0 and stdout contains "mcpboot"
+2. **Help passthrough (mod)**: Same for `mcpknife mod --help`, verify "mcpblox" in output
+3. **Help passthrough (ui)**: Same for `mcpknife ui --help`, verify "mcp-gen-ui" in output
+4. **Config injection**: Create a temp `.mcpkniferc` with `{ "provider": "openai" }`, run `mcpknife boot --dry-run --prompt "test"` from that directory, verify the spawned process received `--provider openai` (check output for "openai" provider indication)
 5. **CLI flag overrides config**: Same setup but pass `--provider anthropic` on CLI, verify "anthropic" wins
-6. **Unknown subcommand**: Run `mcpx bogus`, verify exit code 1 and stderr contains "unknown subcommand"
-7. **Version**: Run `mcpx --version`, verify output matches package.json version
+6. **Unknown subcommand**: Run `mcpknife bogus`, verify exit code 1 and stderr contains "unknown subcommand"
+7. **Version**: Run `mcpknife --version`, verify output matches package.json version
 
 **Pipe chain tests (tagged `@slow`, require API keys):**
 
-8. **Boot dry-run via pipe**: `echo "" | mcpx boot --prompt "test" --dry-run` (verifies boot handles stdin)
+8. **Boot dry-run via pipe**: `echo "" | mcpknife boot --prompt "test" --dry-run` (verifies boot handles stdin)
 
 **Acceptance:** `npm test` passes all tests. Slow tests can be skipped via environment variable.
 
@@ -737,17 +737,17 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 **Steps:**
 1. Write `README.md` with:
    - One-line description
-   - Install instructions (`npm install -g mcpx`)
+   - Install instructions (`npm install -g mcpknife`)
    - Usage examples for each subcommand
    - Pipeline example
    - Config file documentation
-2. Add `.gitignore`: `node_modules/`, `dist/`, `.mcpxrc` (don't commit config with API keys)
+2. Add `.gitignore`: `node_modules/`, `dist/`, `.mcpkniferc` (don't commit config with API keys)
 3. Add ABOUTME comments to all source files
 4. Verify all tests pass
 5. Verify `npm run build` succeeds
 6. Final commit
 
-**Acceptance:** A new user can read the README, install mcpx, create a `.mcpxrc`, and run a pipe chain.
+**Acceptance:** A new user can read the README, install mcpknife, create a `.mcpkniferc`, and run a pipe chain.
 
 ---
 
@@ -755,8 +755,8 @@ export function spawnTool(binaryPath: string, argv: string[]): void;
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Underlying tool changes CLI flags | mcpx passes unrecognized flags through, but config injection assumes stable flag names (`--provider`, `--model`, `--api-key`) | Pin to known semver ranges; the four injected flags are fundamental and unlikely to change |
-| `npx mcpx` is slow (downloads three packages) | Poor first-run experience | Document `npm install -g mcpx` as the preferred install. npx is a convenience, not the primary path |
-| Config file with API keys committed to git | Security exposure | `.gitignore` includes `.mcpxrc` by default. README warns about this |
+| Underlying tool changes CLI flags | mcpknife passes unrecognized flags through, but config injection assumes stable flag names (`--provider`, `--model`, `--api-key`) | Pin to known semver ranges; the four injected flags are fundamental and unlikely to change |
+| `npx mcpknife` is slow (downloads three packages) | Poor first-run experience | Document `npm install -g mcpknife` as the preferred install. npx is a convenience, not the primary path |
+| Config file with API keys committed to git | Security exposure | `.gitignore` includes `.mcpkniferc` by default. README warns about this |
 | Child process doesn't receive signals correctly | Zombie processes on Ctrl+C | Explicit signal forwarding + `stdio: 'inherit'` puts child in same process group |
 | Module resolution differs across Node versions | Binary not found errors | `createRequire` is stable since Node 12. Test on Node 18 and 20 |

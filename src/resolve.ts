@@ -16,7 +16,7 @@ const require = createRequire(import.meta.url);
 export function resolveBinary(subcommand: string): string {
   const packageName = BINARY_MAP[subcommand];
   if (!packageName) {
-    throw new Error(`mcpx: unknown subcommand '${subcommand}'`);
+    throw new Error(`mcpknife: unknown subcommand '${subcommand}'`);
   }
 
   let pkgJsonPath: string;
@@ -24,7 +24,7 @@ export function resolveBinary(subcommand: string): string {
     pkgJsonPath = require.resolve(`${packageName}/package.json`);
   } catch {
     throw new Error(
-      `mcpx: package '${packageName}' not found. Try reinstalling: npm install -g mcpx`
+      `mcpknife: package '${packageName}' not found. Try reinstalling: npm install -g mcpknife`
     );
   }
 
@@ -38,7 +38,7 @@ export function resolveBinary(subcommand: string): string {
 
   if (!binEntry) {
     throw new Error(
-      `mcpx: package '${packageName}' has no bin entry in its package.json`
+      `mcpknife: package '${packageName}' has no bin entry in its package.json`
     );
   }
 

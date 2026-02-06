@@ -1,10 +1,10 @@
 // ABOUTME: Injects config defaults into raw argv when corresponding flags are absent.
 // ABOUTME: Prepends injected flags before the original argv, preserving user-provided order.
 
-import type { McpxConfig } from "./config.js";
+import type { McpknifeConfig } from "./config.js";
 
 const CONFIG_FLAG_MAP: Array<{
-  configKey: keyof McpxConfig;
+  configKey: keyof McpknifeConfig;
   flag: string;
   isBoolean: boolean;
 }> = [
@@ -18,7 +18,7 @@ function hasFlag(argv: string[], flag: string): boolean {
   return argv.some((arg) => arg === flag || arg.startsWith(`${flag}=`));
 }
 
-export function buildArgv(config: McpxConfig, rawArgv: string[]): string[] {
+export function buildArgv(config: McpknifeConfig, rawArgv: string[]): string[] {
   const injected: string[] = [];
 
   for (const { configKey, flag, isBoolean } of CONFIG_FLAG_MAP) {
