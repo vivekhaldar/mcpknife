@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/hero.jpeg" alt="mcpknife — The Swiss Army knife for MCP servers" width="100%" />
+</p>
+
 # mcpknife
 
 The Swiss Army knife for MCP servers. One command to generate, transform, and add UIs to MCP servers — with Unix pipes.
