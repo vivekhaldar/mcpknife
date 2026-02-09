@@ -1,6 +1,6 @@
 {
   "name": "mcpknife",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Swiss Army knife for MCP servers — generate, transform, and add UIs with Unix pipes",
   "type": "module",
   "bin": {
@@ -28,7 +28,7 @@
   "license": "Apache-2.0",
   "author": "Vivek Haldar",
   "dependencies": {
-    "mcp-gen-ui": "^0.1.8",
+    "mcp-gen-ui": "^0.1.9",
     "mcpblox": "^0.1.1",
     "mcpboot": "^0.1.0"
   },
