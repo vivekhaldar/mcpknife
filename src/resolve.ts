@@ -44,3 +44,13 @@ export function resolveBinary(subcommand: string): string {
 
   return path.resolve(pkgRoot, binEntry);
 }
+
+export function resolveVersion(packageName: string): string {
+  try {
+    const pkgJsonPath = require.resolve(`${packageName}/package.json`);
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+    return pkgJson.version ?? "unknown";
+  } catch {
+    return "not installed";
+  }
+}

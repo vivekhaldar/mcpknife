@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { loadConfig } from "./config.js";
-import { resolveBinary, BINARY_MAP } from "./resolve.js";
+import { resolveBinary, resolveVersion, BINARY_MAP } from "./resolve.js";
 import { buildArgv } from "./args.js";
 import { spawnTool } from "./spawn.js";
 
@@ -63,6 +63,9 @@ if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
 
 if (args[0] === "--version" || args[0] === "-V") {
   console.log(`mcpknife v${version}`);
+  for (const [cmd, pkg] of Object.entries(BINARY_MAP)) {
+    console.log(`  ${cmd}: ${pkg} v${resolveVersion(pkg)}`);
+  }
   process.exit(0);
 }
 

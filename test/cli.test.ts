@@ -59,13 +59,17 @@ describe("cli", () => {
     it("prints version with --version flag", () => {
       const result = run(["--version"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+$/);
+      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+/);
+      expect(result.stdout).toContain("boot: mcpboot v");
+      expect(result.stdout).toContain("mod: mcpblox v");
+      expect(result.stdout).toContain("ui: mcp-gen-ui v");
     });
 
     it("prints version with -V flag", () => {
       const result = run(["-V"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+$/);
+      expect(result.stdout).toMatch(/^mcpknife v\d+\.\d+\.\d+/);
+      expect(result.stdout).toContain("boot: mcpboot v");
     });
   });
 

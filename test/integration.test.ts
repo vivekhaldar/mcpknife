@@ -119,7 +119,10 @@ describe("integration", () => {
       );
       const result = run(["--version"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe(`mcpknife v${pkgJson.version}`);
+      expect(result.stdout).toContain(`mcpknife v${pkgJson.version}`);
+      expect(result.stdout).toContain("boot: mcpboot v");
+      expect(result.stdout).toContain("mod: mcpblox v");
+      expect(result.stdout).toContain("ui: mcp-gen-ui v");
     });
   });
 
