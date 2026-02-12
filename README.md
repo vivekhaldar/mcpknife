@@ -9,22 +9,24 @@ The Swiss Army knife for MCP servers. One command to generate, transform, and ad
 ```bash
 mcpknife boot --prompt "Hacker News API https://github.com/HackerNews/API" \
   | mcpknife mod --prompt "combine new + best into get_trending" \
-  | mcpknife ui
+  | mcpknife ui \
+  | mcpknife export --output-dir ./my-server
 ```
 
-That's it. Three stages, one pipeline, zero glue code. You go from API docs to a running MCP server with custom tool composition and auto-generated UI in a single command.
+That's it. Four stages, one pipeline, zero glue code. You go from API docs to a standalone MCP server with custom tool composition and auto-generated UI in a single command.
 
 ## What it does
 
-mcpknife unifies three tools under one CLI:
+mcpknife unifies three tools under one CLI, plus an export command:
 
 | Command | What it does | Underlying tool |
 |---------|-------------|-----------------|
 | `mcpknife boot` | Generate an MCP server from a prompt + API docs | [mcpboot](https://npmjs.com/package/mcpboot) |
 | `mcpknife mod` | Transform, rename, hide, or combine tools on an MCP server | [mcpblox](https://npmjs.com/package/mcpblox) |
 | `mcpknife ui` | Auto-generate interactive UIs for MCP server tools | [mcp-gen-ui](https://npmjs.com/package/mcp-gen-ui) |
+| `mcpknife export` | Dump the pipeline as a standalone MCP server project | built-in |
 
-Each stage reads an upstream server URL from stdin and writes its own URL to stdout. Standard Unix pipes connect them.
+Each stage reads an upstream server URL from stdin and writes its own URL to stdout. Standard Unix pipes connect them. `export` is a terminal stage that crawls the pipeline via `_mcp_metadata` and generates a self-contained Node.js project.
 
 ## Install
 
@@ -59,6 +61,17 @@ mcpknife ui --upstream-url http://localhost:3000/mcp
 ```
 
 Auto-generates interactive UIs for every tool on the server.
+
+### Export a standalone server
+
+```bash
+mcpknife boot --prompt "Free Dictionary API https://dictionaryapi.dev/" \
+  | mcpknife mod --prompt "Create one tool: synonyms and antonyms" \
+  | mcpknife ui \
+  | mcpknife export --output-dir ./dict-server
+```
+
+Append `mcpknife export` to any pipeline to dump a self-contained Node.js project. The exported server runs independently — no mcpknife, mcpboot, mcpblox, or mcp-gen-ui required. Just `cd dict-server && npm install && node server.js`.
 
 ### Compose with pipes
 
@@ -123,6 +136,7 @@ Run `mcpknife <command> --help` for full options:
 mcpknife boot --help
 mcpknife mod --help
 mcpknife ui --help
+mcpknife export --help
 ```
 
 ## Development

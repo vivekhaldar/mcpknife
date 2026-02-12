@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-mcpknife is a CLI multiplexer for three MCP tools. It owns no business logic—it handles config loading, binary resolution, argument injection, and process spawning to delegate to:
+mcpknife is a CLI multiplexer for three MCP tools plus a built-in export command. It handles config loading, binary resolution, argument injection, and process spawning to delegate to:
 
 - `mcpknife boot` → mcpboot (generate MCP server from prompt + API docs)
 - `mcpknife mod` → mcpblox (transform/reshape tools on existing MCP server)
 - `mcpknife ui` → mcp-gen-ui (auto-generate UIs for MCP servers)
+- `mcpknife export` → built-in (dump pipeline as standalone Node.js project)
 
-These can be piped: `mcpknife boot ... | mcpknife mod ... | mcpknife ui`
+These can be piped: `mcpknife boot ... | mcpknife mod ... | mcpknife ui | mcpknife export`
 
 ## Build & Test Commands
 
@@ -25,7 +26,7 @@ No lint or format commands are configured.
 
 ## Architecture
 
-Five modules, linear pipeline:
+For `boot`, `mod`, `ui` — five modules, linear pipeline:
 
 ```
 cli.ts → config.ts → resolve.ts → args.ts → spawn.ts → child process
@@ -39,6 +40,13 @@ cli.ts → config.ts → resolve.ts → args.ts → spawn.ts → child process
 
 Key design choice: mcpknife never parses subcommand-level flags. Everything after the subcommand name is passed through verbatim to the child tool.
 
+For `export` — built-in, two modules:
+
+- **export.ts**: Reads upstream URL from stdin, crawls the pipeline by calling `_mcp_metadata` on each stage (following `upstream_url` recursively), then delegates to codegen.
+- **codegen.ts**: Generates a standalone Node.js project from the collected metadata: `server.js` (with vm sandbox, tool dispatch, resource serving), `handlers/`, `orchestrations/`, `transforms/`, `ui/`, `package.json`, `README.md`.
+
+Each sub-tool (mcpboot, mcpblox, mcp-gen-ui) exposes a hidden `_mcp_metadata` tool that returns its stage type, version, generated code, and upstream URL. Export walks this chain to reconstruct the full pipeline.
+
 ## Code Conventions
 
 - All source files start with two `// ABOUTME:` comment lines explaining the file's purpose.
@@ -48,6 +56,8 @@ Key design choice: mcpknife never parses subcommand-level flags. Everything afte
 ## Testing
 
 Unit tests cover each module independently. Integration tests in `test/integration.test.ts` use fixture scripts in `test/fixtures/` to test the full pipeline (config injection, flag override, signal forwarding, etc.) without requiring the actual mcpboot/mcpblox/mcp-gen-ui packages.
+
+Export tests in `test/export.test.ts` cover argument parsing, project generation (boot-only, boot+mod, boot+ui), and pipeline crawling using fake metadata servers in `test/fixtures/`.
 
 ## Defaults & Credentials
 
