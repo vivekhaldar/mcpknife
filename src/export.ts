@@ -50,7 +50,7 @@ Examples:
   mcpknife boot ... | mcpknife mod ... | mcpknife ui | mcpknife export`);
 }
 
-export function readUrlFromStdin(timeoutMs: number = 10000): Promise<string> {
+export function readUrlFromStdin(timeoutMs: number = 120000): Promise<string> {
   return new Promise((resolve, reject) => {
     if (process.stdin.isTTY) {
       reject(new Error(
