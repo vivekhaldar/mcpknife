@@ -186,6 +186,11 @@ describe("generateProject", () => {
     const serverJs = readFileSync(path.join(tmpDir, "server.js"), "utf-8");
     expect(serverJs).toContain("ListResourcesRequestSchema");
     expect(serverJs).toContain("ReadResourceRequestSchema");
+
+    // Server should include _meta with UI resource URIs in ListTools
+    expect(serverJs).toContain("toolResourceUris");
+    expect(serverJs).toContain('_meta');
+    expect(serverJs).toContain('ui://greet');
   });
 });
 

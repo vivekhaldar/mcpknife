@@ -387,6 +387,15 @@ ${mod.synthetic_tools.map(t =>
 
   // UI resources
   if (ui && ui.ui_resources.length > 0) {
+    // Build tool→resourceUri map for _meta in ListTools
+    const toolUriMap: Record<string, string> = {};
+    for (const r of ui.ui_resources) {
+      toolUriMap[r.tool_name] = r.resource_uri;
+    }
+    parts.push(`// UI resource URIs (for tool _meta)
+const toolResourceUris = ${JSON.stringify(toolUriMap)};`);
+    parts.push("");
+
     parts.push(`// UI resources
 const uiResources = new Map();
 ${ui.ui_resources.map(r =>
@@ -419,11 +428,12 @@ const httpServer = http.createServer(async (req, res) => {
     );
 
     mcpServer.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: TOOLS.map(t => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-      })),
+      tools: TOOLS.map(t => {
+        const entry = { name: t.name, description: t.description, inputSchema: t.inputSchema };${ui ? `
+        const uri = toolResourceUris[t.name];
+        if (uri) entry._meta = { ui: { resourceUri: uri } };` : ""}
+        return entry;
+      }),
     }));
 
     mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
