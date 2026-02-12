@@ -1,6 +1,6 @@
 {
   "name": "mcpknife",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Swiss Army knife for MCP servers — generate, transform, and add UIs with Unix pipes",
   "type": "module",
   "bin": {
