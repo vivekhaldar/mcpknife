@@ -1,0 +1,22 @@
+{
+  "stage": "mod",
+  "version": "0.1.2",
+  "upstream_url": "PLACEHOLDER",
+  "hidden_tools": ["greet"],
+  "pass_through_tools": [],
+  "synthetic_tools": [
+    {
+      "name": "greet_loudly",
+      "description": "Greet someone with enthusiasm",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "orchestration_code": "const result = await callTool('greet', { name: args.name });\nconst text = result.content[0].text;\nreturn { content: [{ type: 'text', text: text.toUpperCase() + '!!!' }] };",
+      "upstream_tools_used": ["greet"]
+    }
+  ]
+}

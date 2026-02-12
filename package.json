@@ -28,6 +28,7 @@
   "license": "Apache-2.0",
   "author": "Vivek Haldar",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "mcp-gen-ui": "^0.1.9",
     "mcpblox": "^0.1.1",
     "mcpboot": "^0.1.0"

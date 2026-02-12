@@ -1,0 +1,21 @@
+{
+  "stage": "boot",
+  "version": "0.1.2",
+  "upstream_url": null,
+  "whitelist_domains": ["api.example.com"],
+  "tools": [
+    {
+      "name": "greet",
+      "description": "Say hello to someone",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Person to greet" }
+        },
+        "required": ["name"]
+      },
+      "handler_code": "return { content: [{ type: \"text\", text: \"Hello \" + args.name + \"!\" }] };",
+      "needs_network": false
+    }
+  ]
+}

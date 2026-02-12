@@ -9,6 +9,7 @@ import { loadConfig } from "./config.js";
 import { resolveBinary, resolveVersion, BINARY_MAP } from "./resolve.js";
 import { buildArgv } from "./args.js";
 import { spawnTool } from "./spawn.js";
+import { runExport } from "./export.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ Commands:
   boot    Generate an MCP server from a prompt and API docs
   mod     Transform tools on an existing MCP server
   ui      Add interactive UI to an MCP server
+  export  Dump a self-contained MCP server project to disk
 
 Options:
   --help      Show this help message
@@ -50,6 +52,9 @@ Examples:
 
   # Full pipeline
   mcpknife boot --prompt "Yahoo Finance" | mcpknife mod --prompt "combine tools" | mcpknife ui
+
+  # Export standalone server
+  mcpknife boot --prompt "Dictionary API" | mcpknife mod --prompt "synonyms" | mcpknife export
 
 Run 'mcpknife <command> --help' for command-specific options.`);
 }
@@ -72,13 +77,18 @@ if (args[0] === "--version" || args[0] === "-V") {
 const subcommand = args[0];
 const rawArgv = args.slice(1);
 
-if (!BINARY_MAP[subcommand]) {
+if (subcommand === "export") {
+  runExport(rawArgv).then(() => process.exit(0)).catch((err: Error) => {
+    console.error(`mcpknife export: ${err.message}`);
+    process.exit(1);
+  });
+} else if (!BINARY_MAP[subcommand]) {
   console.error(`mcpknife: unknown subcommand '${subcommand}'`);
   console.error(`Run 'mcpknife --help' for usage`);
   process.exit(1);
+} else {
+  const config = loadConfig();
+  const binaryPath = resolveBinary(subcommand);
+  const argv = buildArgv(config, rawArgv);
+  spawnTool(binaryPath, argv);
 }
-
-const config = loadConfig();
-const binaryPath = resolveBinary(subcommand);
-const argv = buildArgv(config, rawArgv);
-spawnTool(binaryPath, argv);
