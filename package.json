@@ -29,9 +29,9 @@
   "author": "Vivek Haldar",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "mcp-gen-ui": "^0.1.9",
-    "mcpblox": "^0.1.1",
-    "mcpboot": "^0.1.0"
+    "mcp-gen-ui": "^0.1.11",
+    "mcpblox": "^0.1.3",
+    "mcpboot": "^0.1.3"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
