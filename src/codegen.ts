@@ -302,10 +302,13 @@ ${mod.synthetic_tools.map(t =>
   // Main dispatch function
   parts.push(`async function dispatchTool(name, args) {`);
 
+  const hasSynthetic = mod?.synthetic_tools && mod.synthetic_tools.length > 0;
+  const hasTransforms = mod?.pass_through_tools?.some(t => t.input_transform_code || t.output_transform_code);
+
   if (mod) {
-    // Check synthetic first
-    parts.push(`  // Synthetic tools
-  if (orchestrations && orchestrations.has(name)) {
+    if (hasSynthetic) {
+      parts.push(`  // Synthetic tools
+  if (orchestrations.has(name)) {
     const code = orchestrations.get(name);
     const callTool = async (n, a) => callBootTool(n, a);
     const sandbox = {
@@ -320,16 +323,18 @@ ${mod.synthetic_tools.map(t =>
     const script = new vm.Script(wrappedCode);
     return script.runInContext(context, { timeout: SANDBOX_TIMEOUT_MS });
   }`);
-    parts.push("");
+      parts.push("");
+    }
 
     // Check routed tools (pass-through and modified)
-    parts.push(`  // Pass-through and modified tools
+    if (hasTransforms) {
+      parts.push(`  // Pass-through and modified tools
   const upstreamName = toolRouting.get(name);
   if (upstreamName !== undefined) {
     let callArgs = args;
 
     // Apply input transform if present
-    const transform = transforms ? transforms.get(name) : undefined;
+    const transform = transforms.get(name);
     if (transform && transform.input_transform_code) {
       try {
         const fn = new Function("args", transform.input_transform_code);
@@ -354,7 +359,16 @@ ${mod.synthetic_tools.map(t =>
 
     return result;
   }`);
-    parts.push("");
+      parts.push("");
+    } else {
+      // Pass-through only (no transforms)
+      parts.push(`  // Pass-through tools
+  const upstreamName = toolRouting.get(name);
+  if (upstreamName !== undefined) {
+    return callBootTool(upstreamName, args);
+  }`);
+      parts.push("");
+    }
   }
 
   if (boot && !mod) {

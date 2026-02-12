@@ -114,10 +114,11 @@ export async function fetchMetadata(url: string): Promise<StageMetadata> {
   await client.connect(transport);
 
   try {
-    const result = await client.callTool({
-      name: "_mcp_metadata",
-      arguments: {},
-    });
+    const result = await client.callTool(
+      { name: "_mcp_metadata", arguments: {} },
+      undefined,
+      { timeout: 300000 },
+    );
 
     const content = result.content as Array<{ type: string; text: string }>;
     if (!content || content.length === 0 || !content[0].text) {
