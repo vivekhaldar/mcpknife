@@ -167,6 +167,7 @@ describe("generateDockerfile", () => {
     expect(dockerfile).toContain("COPY package.json");
     expect(dockerfile).toContain("RUN npm install --omit=dev");
     expect(dockerfile).toContain("COPY . .");
+    expect(dockerfile).toContain("ENV PORT=8080");
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain('CMD ["node", "server.js"]');
   });
@@ -292,6 +293,29 @@ describe("codegen auth", () => {
     expect(serverJs).toContain('"Bearer "');
     expect(serverJs).toContain("401");
     expect(serverJs).toContain('req.url !== "/health"');
+  });
+
+  it("generated server.js binds to 0.0.0.0 by default", async () => {
+    tmpDir = mkdtempSync(path.join(os.tmpdir(), "deploy-host-test-"));
+    const bootMetadata: StageMetadata = {
+      stage: "boot",
+      version: "0.1.0",
+      upstream_url: null,
+      whitelist_domains: [],
+      tools: [{
+        name: "test_tool",
+        description: "A test tool",
+        input_schema: { type: "object", properties: {} },
+        handler_code: 'return { content: [{ type: "text", text: "ok" }] };',
+        needs_network: false,
+      }],
+    };
+
+    await generateProject([bootMetadata], tmpDir);
+
+    const serverJs = readFileSync(path.join(tmpDir, "server.js"), "utf-8");
+    expect(serverJs).toContain('process.env.HOST || "0.0.0.0"');
+    expect(serverJs).toContain("httpServer.listen(PORT, HOST");
   });
 
   it("generated server.js includes Authorization in CORS headers", async () => {

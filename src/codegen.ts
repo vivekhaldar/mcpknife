@@ -503,8 +503,9 @@ const httpServer = http.createServer(async (req, res) => {
   }
 });
 
-httpServer.listen(PORT, () => {
-  console.log("Exported MCP server listening on http://localhost:" + PORT + "/mcp");
+const HOST = process.env.HOST || "0.0.0.0";
+httpServer.listen(PORT, HOST, () => {
+  console.log("Exported MCP server listening on http://" + HOST + ":" + PORT + "/mcp");
   console.log("Serving " + TOOLS.length + " tool(s)");
 });
 
