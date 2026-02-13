@@ -10,6 +10,7 @@ import { resolveBinary, resolveVersion, BINARY_MAP } from "./resolve.js";
 import { buildArgv } from "./args.js";
 import { spawnTool } from "./spawn.js";
 import { runExport } from "./export.js";
+import { runDeploy } from "./deploy.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,7 @@ Commands:
   mod     Transform tools on an existing MCP server
   ui      Add interactive UI to an MCP server
   export  Dump a self-contained MCP server project to disk
+  deploy  Deploy an exported project to the cloud
 
 Options:
   --help      Show this help message
@@ -55,6 +57,9 @@ Examples:
 
   # Export standalone server
   mcpknife boot --prompt "Dictionary API" | mcpknife mod --prompt "synonyms" | mcpknife export
+
+  # Export and deploy to Fly.io
+  mcpknife boot --prompt "Dictionary API" | mcpknife export | mcpknife deploy --name dict-api
 
 Run 'mcpknife <command> --help' for command-specific options.`);
 }
@@ -80,6 +85,11 @@ const rawArgv = args.slice(1);
 if (subcommand === "export") {
   runExport(rawArgv).then(() => process.exit(0)).catch((err: Error) => {
     console.error(`mcpknife export: ${err.message}`);
+    process.exit(1);
+  });
+} else if (subcommand === "deploy") {
+  runDeploy(rawArgv).then(() => process.exit(0)).catch((err: Error) => {
+    console.error(`mcpknife deploy: ${err.message}`);
     process.exit(1);
   });
 } else if (!BINARY_MAP[subcommand]) {

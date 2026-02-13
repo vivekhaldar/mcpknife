@@ -3,6 +3,7 @@
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import path from "node:path";
 import { generateProject } from "./codegen.js";
 
 export interface StageMetadata {
@@ -165,8 +166,14 @@ export async function runExport(argv: string[]): Promise<void> {
   console.error(`[export] Found ${stages.length} stage(s): ${stages.map(s => s.stage).join(" → ")}`);
 
   // Generate project
-  console.error(`[export] Generating project in ${outputDir}...`);
+  const absOutputDir = path.resolve(outputDir);
+  console.error(`[export] Generating project in ${absOutputDir}...`);
   await generateProject(stages, outputDir);
-  console.error(`[export] Done! Project written to ${outputDir}`);
-  console.error(`[export] To run: cd ${outputDir} && npm install && node server.js`);
+  console.error(`[export] Done! Project written to ${absOutputDir}`);
+  console.error(`[export] To run: cd ${absOutputDir} && npm install && node server.js`);
+
+  // Write absolute path to stdout when piped (enables: mcpknife export | mcpknife deploy)
+  if (!process.stdout.isTTY) {
+    process.stdout.write(absOutputDir + "\n");
+  }
 }

@@ -409,16 +409,26 @@ ${ui.ui_resources.map(r =>
 
   // HTTP server
   parts.push(`const PORT = parseInt(process.env.PORT || "8000", 10);
+const MCP_API_KEY = process.env.MCP_API_KEY;
 
 const httpServer = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id, Authorization");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
     return;
+  }
+
+  if (MCP_API_KEY && req.url !== "/health") {
+    const auth = req.headers["authorization"];
+    if (!auth || auth !== "Bearer " + MCP_API_KEY) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
   }
 
   if (req.method === "POST" && (req.url === "/mcp" || req.url === "/")) {
