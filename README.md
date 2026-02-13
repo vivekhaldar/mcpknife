@@ -25,6 +25,7 @@ mcpknife unifies three tools under one CLI, plus an export command:
 | `mcpknife mod` | Transform, rename, hide, or combine tools on an MCP server | [mcpblox](https://npmjs.com/package/mcpblox) |
 | `mcpknife ui` | Auto-generate interactive UIs for MCP server tools | [mcp-gen-ui](https://npmjs.com/package/mcp-gen-ui) |
 | `mcpknife export` | Dump the pipeline as a standalone MCP server project | built-in |
+| `mcpknife deploy` | Deploy an exported project to the cloud | built-in |
 
 Each stage reads an upstream server URL from stdin and writes its own URL to stdout. Standard Unix pipes connect them. `export` is a terminal stage that crawls the pipeline via `_mcp_metadata` and generates a self-contained Node.js project.
 
@@ -73,6 +74,28 @@ mcpknife boot --prompt "Free Dictionary API https://dictionaryapi.dev/" \
 
 Append `mcpknife export` to any pipeline to dump a self-contained Node.js project. The exported server runs independently — no mcpknife, mcpboot, mcpblox, or mcp-gen-ui required. Just `cd dict-server && npm install && node server.js`.
 
+### Deploy to the cloud
+
+```bash
+# Export and deploy to Fly.io in one pipeline
+mcpknife boot --prompt "Free Dictionary API https://dictionaryapi.dev/" \
+  | mcpknife export \
+  | mcpknife deploy --name dict-api
+
+# Deploy an existing exported project
+mcpknife deploy ./dict-server --name dict-api --region lax
+
+# Set extra environment variables
+mcpknife deploy ./dict-server --name dict-api --env DB_URL=postgres://...
+
+# Tear down
+mcpknife deploy --destroy --name dict-api
+```
+
+Deploy takes an exported project directory (positional arg or piped from `mcpknife export`) and deploys it. The server is protected with bearer auth — an API key is auto-generated (or pass `--api-key`). The `/health` endpoint remains open for monitoring.
+
+Currently supports Fly.io (`--target fly`, the default). Requires the `fly` CLI installed and authenticated (`fly auth login`).
+
 ### Compose with pipes
 
 The real power is composition. Each stage is a separate process connected by pipes:
@@ -87,6 +110,12 @@ mcpknife boot --prompt "GitHub API https://docs.github.com/en/rest" \
 mcpknife mod --upstream "npx some-server" --prompt "rename tools to snake_case" \
   | mcpknife mod --prompt "add synthetic summary tool" \
   | mcpknife ui --standard openai
+
+# Full pipeline: generate → transform → export → deploy
+mcpknife boot --prompt "Yahoo Finance" \
+  | mcpknife mod --prompt "combine tools" \
+  | mcpknife export \
+  | mcpknife deploy --name yahoo-finance
 ```
 
 ## Configuration
@@ -137,6 +166,7 @@ mcpknife boot --help
 mcpknife mod --help
 mcpknife ui --help
 mcpknife export --help
+mcpknife deploy --help
 ```
 
 ## Development

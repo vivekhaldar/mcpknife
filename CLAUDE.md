@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-mcpknife is a CLI multiplexer for three MCP tools plus a built-in export command. It handles config loading, binary resolution, argument injection, and process spawning to delegate to:
+mcpknife is a CLI multiplexer for three MCP tools plus built-in export and deploy commands. It handles config loading, binary resolution, argument injection, and process spawning to delegate to:
 
 - `mcpknife boot` → mcpboot (generate MCP server from prompt + API docs)
 - `mcpknife mod` → mcpblox (transform/reshape tools on existing MCP server)
 - `mcpknife ui` → mcp-gen-ui (auto-generate UIs for MCP servers)
 - `mcpknife export` → built-in (dump pipeline as standalone Node.js project)
+- `mcpknife deploy` → built-in (deploy exported project to cloud provider)
 
-These can be piped: `mcpknife boot ... | mcpknife mod ... | mcpknife ui | mcpknife export`
+These can be piped: `mcpknife boot ... | mcpknife mod ... | mcpknife ui | mcpknife export | mcpknife deploy`
 
 ## Build & Test Commands
 
@@ -47,6 +48,14 @@ For `export` — built-in, two modules:
 
 Each sub-tool (mcpboot, mcpblox, mcp-gen-ui) exposes a hidden `_mcp_metadata` tool that returns its stage type, version, generated code, and upstream URL. Export walks this chain to reconstruct the full pipeline.
 
+For `deploy` — built-in, three modules:
+
+- **deploy.ts**: Orchestrator. Parses args, validates project directory, dispatches to provider, formats output (URL to stdout, summary to stderr).
+- **providers/types.ts**: Provider interface (`preflight`, `deploy`, `destroy`) and shared types.
+- **providers/fly.ts**: Fly.io provider. Generates Dockerfile, shells out to `fly` CLI for launch/secrets/deploy/destroy.
+
+The generated `server.js` includes optional bearer auth via `MCP_API_KEY` env var. The `/health` endpoint is exempt from auth for monitoring.
+
 ## Code Conventions
 
 - All source files start with two `// ABOUTME:` comment lines explaining the file's purpose.
@@ -58,6 +67,8 @@ Each sub-tool (mcpboot, mcpblox, mcp-gen-ui) exposes a hidden `_mcp_metadata` to
 Unit tests cover each module independently. Integration tests in `test/integration.test.ts` use fixture scripts in `test/fixtures/` to test the full pipeline (config injection, flag override, signal forwarding, etc.) without requiring the actual mcpboot/mcpblox/mcp-gen-ui packages.
 
 Export tests in `test/export.test.ts` cover argument parsing, project generation (boot-only, boot+mod, boot+ui), and pipeline crawling using fake metadata servers in `test/fixtures/`.
+
+Deploy tests in `test/deploy.test.ts` cover argument parsing, project directory validation, Dockerfile generation, Fly CLI command construction, output formatting, and bearer auth in generated server.js.
 
 ## Defaults & Credentials
 
