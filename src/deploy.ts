@@ -86,7 +86,7 @@ export function validateProjectDir(dir: string): void {
   }
 }
 
-function readPathFromStdin(timeoutMs: number = 10000): Promise<string> {
+function readPathFromStdin(timeoutMs: number = 120000): Promise<string> {
   return new Promise((resolve, reject) => {
     if (process.stdin.isTTY) {
       reject(new Error(
